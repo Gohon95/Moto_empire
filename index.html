@@ -357,7 +357,7 @@ function hud(){
   $('act').disabled=!(c&&c.f);
   $('speed').textContent=s.cur>=0&&Math.abs(spd)>.5?Math.round(Math.abs(spd)*3.6)+' km/h':'';
   const zz=z?z.id:'';if(zz!==lastZ){lastZ=zz;sig=''}
-  $('online').textContent=online>1?'👥 '+online+' en ligne':'';
+  $('online').textContent=online>1?'👥 '+online+' en ligne':(room?'👥 seul':'');if(menuOpen&&tab==='online'&&++mrc%7===0)renderMenu();
   upd();
 }
 function upd(){
@@ -458,7 +458,7 @@ function animExtra(dt){
   if(race.on&&race.cd<=0){$('race').style.display='block';$('rtxt').textContent='Tour '+race.lap+'/'+race.laps+' · '+fmtT(race.t)+(s.bestLap?' · Record '+fmtT(s.bestLap):'')+(race.off?' · HORS PISTE':'')}
   else if(race.on)$('race').style.display='none';
   netT+=dt;
-  if(room&&netT>.08){netT=0;const p=pl.position;room.presence({x:+p.x.toFixed(1),z:+p.z.toFixed(1),h:+head.toFixed(2),b:s.cur,c:s.cur>=0?(s.paint[s.cur]||BK[s.cur].col):0,l:+lean.toFixed(2),v:+spd.toFixed(1),n:me.name||myNick}).catch(()=>{})}
+  if(room&&netT>.08){netT=0;const p=pl.position;room.presence({x:+p.x.toFixed(1),z:+p.z.toFixed(1),h:+head.toFixed(2),b:s.cur,c:s.cur>=0?(s.paint[s.cur]||BK[s.cur].col):0,l:+lean.toFixed(2),v:+spd.toFixed(1),n:me.name||myNick}).catch(e=>{netErr=String((e&&e.code)||'erreur')})}
 }
 $('rabort').onclick=endRace;
 function makeRemote(pr,old){
@@ -479,22 +479,29 @@ function syncPeers(list){
 }
 
 /* --- scores en base de données --- */
+let netErr='',mrc=0,netSt={room:'wait',db:'wait'};
+function netLine(){
+  const d=netSt.db==='wait'?'connexion…':db?'<b>en ligne</b> (base de données partagée)':'<b>local</b> : base indisponible';
+  const m=netSt.room==='wait'?'connexion…':room?(online>1?'<b>'+(online-1)+' autre(s) joueur(s)</b> connecté(s)':'<b>connecté</b>, personne d\'autre pour l\'instant'):'<b>indisponible</b> : ouvre le jeu depuis claude.ai, pas depuis le fichier téléchargé';
+  return 'Classement : '+d+'<br>Multijoueur : '+m}
 async function initNet(){
-  if(!(window.claude&&claude.use))return;
+  if(!(window.claude&&claude.use)){netSt={room:'off',db:'off'};if(menuOpen)renderMenu();return}
+  const rr=async()=>{try{room=await claude.use('room');if(room){room.onPeers(ch=>syncPeers(ch.peers),()=>{});netSt.room='ok'}else netSt.room='off'}catch(e){room=null;netSt.room='off'}if(menuOpen)renderMenu()};
+  const dd=async()=>{try{db=await claude.use('db')}catch(e){db=null}netSt.db=db?'ok':'off';
+    if(db){try{db.collection('scores').limit(200).onSnapshot(sn=>{board=sn.docs.map(d=>Object.assign({id:d.id},d.data()));resolveNames();if(menuOpen)renderMenu()},()=>{})}catch(e){}}
+    if(menuOpen)renderMenu()};
+  rr();dd();
   try{usr=await claude.use('user');if(usr){const m=await usr.me();me={id:m.id||null,name:m.name||''}}}catch(e){}
-  try{room=await claude.use('room');if(room)room.onPeers(ch=>syncPeers(ch.peers),()=>{})}catch(e){room=null}
-  try{db=await claude.use('db')}catch(e){db=null}
-  if(db){try{db.collection('scores').limit(200).onSnapshot(sn=>{board=sn.docs.map(d=>Object.assign({id:d.id},d.data()));resolveNames();if(menuOpen)renderMenu()},()=>{})}catch(e){}pushScore(true)}
-  if(menuOpen)renderMenu();
+  if(menuOpen)renderMenu();pushScore(true,true);
 }
 async function resolveNames(){
   if(!usr)return;
   try{const ids=board.map(b=>b.id).filter(i=>!(i in names));if(!ids.length)return;const ps=await usr.profiles(ids);ids.forEach(i=>names[i]=(ps[i]&&ps[i].name)||'');if(menuOpen)renderMenu()}catch(e){}
 }
-async function pushScore(force){
+async function pushScore(force,zero){
   if(!db||!me.id||!canWrite||busy)return;
   const d={score:Math.floor(s.earned),lap:s.bestLap||0,emp:luxe(),bikes:s.bikes.length,upd:Date.now()};
-  if(!d.score&&!d.lap)return;
+  if(!d.score&&!d.lap&&!zero)return;
   const sg=d.score+'|'+d.lap;if(!force&&sg===pushed)return;
   busy=true;try{await db.collection('scores').doc(me.id).set(d);pushed=sg}catch(e){if(String(e&&e.code).indexOf('perm')>=0)canWrite=false}busy=false;
 }
@@ -505,7 +512,7 @@ function menuHTML(){
   let b='';
   if(tab==='play'){
     const fresh=!s.earned&&!s.found;
-    b='<p>Fouille la casse, vends, monte ton garage, bâtis ton empire et bats le record du circuit.</p><p class="sub">Fortune gagnée : <b>'+fmt(s.earned)+'</b> · Meilleur tour : <b>'+(s.bestLap?fmtT(s.bestLap):'--')+'</b></p><button data-act="play" style="width:100%;font-size:20px;padding:14px">'+(fresh?'Nouvelle partie':'Reprendre')+'</button><p class="sub">Classement : '+(db?'<b>en ligne</b> (base de données partagée)':'<b>local</b> (hors connexion)')+'<br>Multijoueur : '+(room?(online>1?'<b>'+(online-1)+' autre(s) joueur(s)</b> connecté(s)':'<b>connecté</b>, personne d\'autre pour l\'instant'):'<b>indisponible</b> hors de claude.ai')+'</p>';
+    b='<p>Fouille la casse, vends, monte ton garage, bâtis ton empire et bats le record du circuit.</p><p class="sub">Fortune gagnée : <b>'+fmt(s.earned)+'</b> · Meilleur tour : <b>'+(s.bestLap?fmtT(s.bestLap):'--')+'</b></p><button data-act="play" style="width:100%;font-size:20px;padding:14px">'+(fresh?'Nouvelle partie':'Reprendre')+'</button><p class="sub">'+netLine()+'</p>';
   }else if(tab==='rank'){
     let rows=board.slice();
     if(!db)rows=[{id:'local',score:Math.floor(s.earned),lap:s.bestLap||0}];
@@ -515,7 +522,8 @@ function menuHTML(){
     b+='<p class="sub">'+(db?(canWrite?'Tes scores sont enregistrés automatiquement.':'Tu peux lire le classement mais pas y écrire (accès lecture seule).'):'Base de données indisponible : classement local seulement.')+'</p>';
   }else if(tab==='online'){
     const list=[(me.name||myNick)+' (toi)'];remotes.forEach(r=>list.push(r.name));
-    b='<p class="sub">'+(room?'Joueurs présents en ce moment dans le monde :':'Le multijoueur n\'est pas disponible ici.')+'</p><ul>'+list.map(n=>'<li>'+esc(n)+'</li>').join('')+'</ul>';
+    const raw=room?room.peers().filter(q=>!q.isMe):[],okp=raw.filter(q=>q.presence&&typeof q.presence.x==='number').length;
+    b='<p class="sub">'+(room?'Salle : <b>'+(room.connected()?'connectée':'NON connectée')+'</b> · autres personnes détectées : <b>'+raw.length+'</b> (avec position : '+okp+')'+(netErr?' · erreur : '+esc(netErr):''):'Salle indisponible : ouvre le jeu depuis claude.ai.')+'</p><ul>'+list.map(n=>'<li>'+esc(n)+'</li>').join('')+'</ul><p class="sub">Vous devez tous ouvrir le même lien, connectés à claude.ai, et avoir été invités sur l\'artefact (un lien public ne suffit pas).</p>';
   }else b='<p><b>Déplacement</b> : flèches ou ZQSD · <b>Turbo</b> : Maj ou Espace · <b>Action</b> : E.</p><p>Casse : ramasse les objets brillants. Brocante : vends. Showroom : achète ta moto. Garage : emploie des mécaniciens (ponts élévateurs). Maison : décore.</p><p><b>Circuit</b> : suis la grande route à l\'opposé de la maison, entre dans l\'anneau de départ, puis E. Passe toutes les portes jaunes, 2 tours chronométrés.</p>';
   return '<h1>🏍️ Moto Empire 3D</h1><div class="tabs">'+tabs+'</div>'+b+(tab!=='play'?'<button data-act="play" style="width:100%;margin-top:8px">Retour au jeu</button>':'');
 }
