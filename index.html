@@ -470,7 +470,7 @@ function makeRemote(pr,old){
   g.position.set(old?old.g.position.x:pr.x,0,old?old.g.position.z:pr.z);sc.add(g);
   return{g,fig:fg,bk:b,tx:pr.x,tz:pr.z,th:pr.h||0,ang:old?old.ang:(pr.h||0),lean:0,v:0,name:nm,key:''}}
 /* --- Supabase : multijoueur temps réel + classement --- */
-const SB_URL='https://VOTRE-PROJET.supabase.co',SB_KEY='sb_publishable_EGUgtFpFkhomAYYDT98bXQ_t6gde-iQ';
+const SB_URL='https://zfcakemnuqoebwaijoaa.supabase.co',SB_KEY='sb_publishable_EGUgtFpFkhomAYYDT98bXQ_t6gde-iQ';
 const myId=(()=>{try{let v=localStorage.getItem('motoId');if(!v){v=Math.random().toString(36).slice(2,10);localStorage.setItem('motoId',v)}return v}catch(e){return Math.random().toString(36).slice(2,10)}})();
 let sbc=null,netErr='',mrc=0,netSt={room:'wait',db:'wait'};
 function onPos(p){if(!p||typeof p.x!=='number'||typeof p.z!=='number'||p.i===myId)return;
