@@ -48,6 +48,8 @@ table.lb{width:100%;border-collapse:collapse;font-size:14px}table.lb td,table.lb
 #race{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 178px);background:var(--panel);border:2px solid var(--ink);border-radius:12px;padding:6px 12px;text-align:center;display:none;z-index:5}
 #rtxt{font-size:19px;font-weight:800}#rabort{padding:3px 8px;font-size:12px;margin-top:4px;background:transparent;color:var(--ink)}
 #count{position:fixed;left:50%;top:36%;transform:translate(-50%,-50%);font-size:110px;font-weight:900;color:#fff;text-shadow:0 4px 14px #000;pointer-events:none}
+#joy{position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);width:136px;height:136px;border-radius:50%;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.6);touch-action:none;z-index:6}
+#nub{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;background:var(--acc);border:3px solid #22262a;opacity:.92;pointer-events:none}
 </style>
 </head>
 <body>
@@ -58,7 +60,7 @@ table.lb{width:100%;border-collapse:collapse;font-size:14px}table.lb td,table.lb
 <div id="speed"></div><div id="toast"></div><div id="hint"></div><div id="panel"></div>
 <div id="race"><div id="rtxt"></div><button id="rabort">Abandonner</button></div><div id="count"></div>
 <div id="menu"><div id="mbox"></div></div>
-<div id="pad"><button class="u" data-k="up" aria-label="Avancer">▲</button><button data-k="left" aria-label="Gauche">◀</button><button data-k="down" aria-label="Reculer">▼</button><button data-k="right" aria-label="Droite">▶</button></div>
+<div id="joy" aria-label="Joystick de déplacement"><div id="nub"></div></div>
 <div id="btns"><button data-k="boost">⚡ Turbo</button><button id="act" data-k="act">Action</button></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -68,7 +70,7 @@ const PARTS=[{v:[1,3],w:50,c:0x9a9a9a},{v:[4,8],w:25,c:0x4aa3df},{v:[8,15],w:13,
 const BK=[{n:'Vieille Rouillée',c:300,sp:13,len:1,fork:0,fair:0,col:0x8a5a3a,d:'Lente, mais elle roule'},{n:'Roadster Urbain',c:2500,sp:20,len:1.05,fork:0,fair:0,col:0x2a6fd6,d:'Agile en ville'},{n:'Chopper Custom',c:9000,sp:25,len:1.35,fork:1,fair:0,col:0xc0392b,d:'Fourche longue, grande allure'},{n:'Superbike GP',c:30000,sp:34,len:1.1,fork:0,fair:1,col:0xf2c230,d:'La plus rapide du monde'}];
 const PAINT=['#c0392b','#2a6fd6','#f2c230','#2fb36b','#eeeeee','#222222','#ff7a1a','#9b59b6'];
 const DECO=[{id:'sofa',n:'Canapé cuir',e:'🛋️',c:3000,l:3,p:[-5,60.5]},{id:'tv',n:'Cinéma plein air',e:'📺',c:5000,l:4,p:[-1,63.2]},{id:'neon',n:'Enseigne néon',e:'🪧',c:6000,l:4,p:[0,57]},{id:'bar',n:'Bar américain',e:'🍺',c:10000,l:6,p:[6,62.3]},{id:'plant',n:'Jardin zen',e:'🪴',c:12000,l:6,p:[-7,54.8]},{id:'trophy',n:'Vitrine à trophées',e:'🏆',c:18000,l:8,p:[7.2,54.6]},{id:'jacuzzi',n:'Jacuzzi',e:'🛁',c:25000,l:10,p:[4,58]},{id:'statue',n:'Statue géante',e:'🗽',c:50000,l:15,p:[0,38]}];
-const D0={money:0,n:0,val:0,garage:0,rent:0,vend:0,chin:0,house:0,pool:0,eng:0,cur:-1,bikes:[],paint:{},found:0,sold:0,won:0,earned:0,bestLap:0,deco:{},frac:0,xp:0,lvl:1,mis:null,races:0};
+const D0={money:0,n:0,val:0,garage:0,rent:0,vend:0,chin:0,house:0,pool:0,eng:0,cur:-1,bikes:[],paint:{},found:0,sold:0,won:0,earned:0,bestLap:0,boats:[],boat:-1,deco:{},frac:0,xp:0,lvl:1,mis:null,races:0};
 let s=load();
 function load(){try{const r=localStorage.getItem('motoEmpire3D');if(r)return Object.assign({},D0,JSON.parse(r))}catch(e){}return JSON.parse(JSON.stringify(D0))}
 function save(){try{localStorage.setItem('motoEmpire3D',JSON.stringify(s))}catch(e){}}
@@ -81,7 +83,7 @@ const costVend=()=>Math.round(300*Math.pow(1.15,s.vend));
 const costChin=()=>Math.round(200*Math.pow(1.15,s.chin));
 const costGar=()=>s.garage===0?800:5000*Math.pow(3,s.garage-1);
 const costEng=()=>1000*Math.pow(2,s.eng);
-const luxe=()=>(s.house?10:0)+(s.pool?8:0)+DECO.reduce((a,d)=>a+(s.deco[d.id]?d.l:0),0);
+const luxe=()=>(s.house?10:0)+(s.pool?8:0)+DECO.reduce((a,d)=>a+(s.deco[d.id]?d.l:0),0)+(s.boats||[]).reduce((a,i)=>a+BT[i].l,0);
 function gain(a){s.money+=a;s.earned+=a}
 const income=()=>s.rent*5*(1+luxe()/100);
 
@@ -179,7 +181,7 @@ box(26,.4,13,0xdddddd,18,.2,-30);box(26,.3,13,0xeeeeee,18,6,-30);box(26,6,.4,0x9
 label('SHOWROOM',2,18,8,-30);
 const disp=BK.map((b,i)=>{const m=makeBike(i,b.col);m.g.scale.setScalar(.9);m.g.position.set(18-7.5+i*5,.4,-30);sc.add(m.g);return m.g});
 // arbres
-for(let i=0;i<90;i++){const a=i*2.399,r=100+((i*37)%120),x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.hypot(x,z+175)<95||(Math.abs(x)<10&&z<-85)||Math.hypot(x,z)>240)continue;
+for(let i=0;i<90;i++){const a=i*2.399,r=100+((i*37)%120),x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.hypot(x-180,z+15)<88||(x>90&&x<130&&Math.abs(z+20)<32)||Math.hypot(x,z+175)<95||(Math.abs(x)<10&&z<-85)||Math.hypot(x,z)>240)continue;
   cyl(.35,.45,2.2,0x7a5230,x,1.1,z,sc,6);const c=add(new THREE.Mesh(new THREE.ConeGeometry(2,5,8),M(0x2f7d3a)),x,4.4,z);c.castShadow=true}
 // garage
 let garG=null,bays=[];
@@ -253,6 +255,8 @@ function purchase(id){
   if(id.startsWith('d_')){const d=DECO.find(x=>x.id===id.slice(2));c=d.c;f=()=>s.deco[d.id]=1}
   else if(id.startsWith('bike_')){const i=+id.slice(5);c=BK[i].c;f=()=>{s.bikes.push(i);s.cur=i;setBike()}}
   else if(id.startsWith('use_')){s.cur=+id.slice(4);setBike();sig='';upd();return}
+  else if(id.startsWith('boat_')){const i=+id.slice(5);c=BT[i].c;f=()=>{s.boats.push(i);s.boat=i}}
+  else if(id.startsWith('buse_')){s.boat=+id.slice(5);sig='';upd();return}
   else if(id.startsWith('paint_')){c=150;f=()=>{s.paint[s.cur]=PAINT[+id.slice(6)];setBike()}}
   else{[c,f]=BUY[id]()}
   if(s.money<c){toast('Il manque '+fmt(c-s.money),'#ff8a80');sfx.no();return}
@@ -260,7 +264,10 @@ function purchase(id){
 }
 function near(){const p=pl.position;return Z.find(z=>Math.hypot(z.x-p.x,z.z-p.z)<z.r)||null}
 function ctxInfo(){
+  if(sailing){const q=near();return q&&q.id==='dock'?{t:'Amarrer et descendre du bateau',f:()=>setSail(false)}:{t:'En mer ! Reviens au ponton pour descendre.'}}
   const z=near();if(z&&z.id.startsWith('npc_'))return npcCtx(z);if(!z)return{t:'Explore : casse, garage, maison… et le circuit au bout de la grande route.'};
+  if(z.id==='port')return{t:'Port : choisis ton bateau dans le menu'};
+  if(z.id==='dock')return s.boat>=0?{t:'Embarquer sur ton '+BT[s.boat].n,f:()=>setSail(true)}:{t:'Achète un bateau au showroom du port'};
   if(z.id==='casse')return{t:`Ramasse les objets brillants (${s.n}/${cap()})`};
   if(z.id==='race')return race.on?{t:'Course en cours : passe toutes les portes !'}:s.cur<0?{t:'Il te faut une moto pour courir (showroom)'}:{t:`Lancer la course chronométrée (${race.laps} tours)`,f:startRace};
   if(z.id==='sell')return{t:`Vendre le stock (${fmt(s.val)})`,f:()=>sell(1)};
@@ -274,20 +281,20 @@ const OBJ=[[()=>s.found>=10,()=>`Ramasse des pièces à la casse : ${Math.min(s.
 /* ---- contrôles ---- */
 const keys={};
 const KM={arrowleft:'left',q:'left',a:'left',arrowright:'right',d:'right',arrowup:'up',z:'up',w:'up',arrowdown:'down',s:'down',e:'act',enter:'act',shift:'boost',' ':'boost'};
-addEventListener('keydown',e=>{const k=KM[e.key.toLowerCase()];if(k){keys[k]=1;actx();if(e.key.startsWith('Arrow')||e.key===' ')e.preventDefault()}});
+addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;const k=KM[e.key.toLowerCase()];if(k){keys[k]=1;actx();if(e.key.startsWith('Arrow')||e.key===' ')e.preventDefault()}});
 addEventListener('keyup',e=>{const k=KM[e.key.toLowerCase()];if(k)keys[k]=0});
 document.querySelectorAll('[data-k]').forEach(b=>{const k=b.dataset.k;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=1;actx()});
   ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=0))});
-$('reset').onclick=()=>{if(confirm('Tout effacer ?')){endRace();s=JSON.parse(JSON.stringify(D0));pl.position.set(0,0,0);head=0;spd=0;setBike();buildGarage();buildHouse();rentals.forEach(r=>sc.remove(r.g));vends.forEach(v=>sc.remove(v));chins.forEach(v=>sc.remove(v));rentals=[];vends=[];chins=[];sig='';upd()}};
+$('reset').onclick=()=>{if(confirm('Tout effacer ?')){endRace();sailing=false;s=JSON.parse(JSON.stringify(D0));pl.position.set(0,0,0);head=0;spd=0;setBike();buildGarage();buildHouse();rentals.forEach(r=>sc.remove(r.g));vends.forEach(v=>sc.remove(v));chins.forEach(v=>sc.remove(v));rentals=[];vends=[];chins=[];sig='';upd()}};
 
 /* ---- boucle ---- */
 let T=0,last=performance.now(),hudT=0;
 const V=THREE.Vector3;
 function step(dt){
   const fr=race.on&&race.cd>0;
-  const riding=s.cur>=0,vmax=(riding?BK[s.cur].sp*(1+.12*s.eng):5.5)*(keys.boost?1.35:1)*offTrack();
-  const f=fr?0:(keys.up?1:0)-(keys.down?1:0),st=fr?0:(keys.left?1:0)-(keys.right?1:0),acc=riding?(f>0?11:14):30;
-  if(f>0)spd=Math.min(vmax,spd+acc*dt);else if(f<0)spd=Math.max(-vmax*.35,spd-acc*1.2*dt);
+  const riding=s.cur>=0||sailing,vmax=(sailing?BT[s.boat].sp:(riding?BK[s.cur].sp*(1+.12*s.eng):5.5))*(keys.boost?1.35:1)*offTrack();
+  const f=fr?0:Math.max(-1,Math.min(1,(keys.up?1:0)-(keys.down?1:0)+joy.y)),st=fr?0:Math.max(-1,Math.min(1,(keys.left?1:0)-(keys.right?1:0)-joy.x)),acc=riding?(f>0?11:14):30;
+  if(f>0){const tv=vmax*Math.min(1,f*1.15);if(spd<tv)spd=Math.min(tv,spd+acc*dt);else spd=Math.max(tv,spd-8*dt)}else if(f<0)spd=Math.max(-vmax*.35,spd-acc*1.2*dt);
   else spd-=Math.sign(spd)*Math.min(Math.abs(spd),(riding?5:25)*dt);
   if(spd>vmax)spd=Math.max(vmax,spd-20*dt);
   const k=riding?Math.min(1,Math.abs(spd)/6):(f||st?1:0);
@@ -295,11 +302,12 @@ function step(dt){
   const p=pl.position;p.x+=Math.sin(head)*spd*dt;p.z+=Math.cos(head)*spd*dt;
   C.forEach((c,ci)=>{if(ci===2&&s.house)return;const dx=p.x-c.x,dz=p.z-c.z,d=Math.hypot(dx,dz),m=c.r+.8;if(d<m){p.x=c.x+dx/d*m;p.z=c.z+dz/d*m;spd*=.6}});
   if(s.house)WALLS.forEach(w=>{const cx=Math.max(w[0],Math.min(p.x,w[1])),cz=Math.max(w[2],Math.min(p.z,w[3])),dx=p.x-cx,dz=p.z-cz,d=Math.hypot(dx,dz);if(d<.8){if(d>.001){p.x=cx+dx/d*.8;p.z=cz+dz/d*.8}else p.z=w[2]-.8;spd*=.6}});const rd=Math.hypot(p.x,p.z);if(rd>245){p.x*=245/rd;p.z*=245/rd;spd*=.5}
+  lakeClamp(p);
   pl.rotation.y=head;
   lean+=((-st*Math.min(1,Math.abs(spd)/vmax)*.45)-lean)*Math.min(1,dt*6);
   if(bk){bk.g.rotation.z=lean;bk.wheels.forEach(w=>w.rotation.x+=spd*dt/.48)}
   else{const sw=Math.sin(T*11)*Math.min(1,Math.abs(spd)/3)*.6;fig.legs[0].rotation.x=sw;fig.legs[1].rotation.x=-sw}
-  const fw=new V(Math.sin(head),0,Math.cos(head)),want=p.clone().addScaledVector(fw,-(riding?8:6)).add(new V(0,riding?3.6:3.2,0));
+  const fw=new V(Math.sin(head),0,Math.cos(head)),want=p.clone().addScaledVector(fw,-(sailing?BT[s.boat].cam:(riding?8:6))).add(new V(0,sailing?BT[s.boat].cam*.42:(riding?3.6:3.2),0));
   cam.position.lerp(want,1-Math.pow(.001,dt));cam.lookAt(p.x+fw.x*3,p.y+1.2,p.z+fw.z*3);
   sun.position.set(p.x+30,50,p.z+20);sun.target.position.copy(p);
   cd=Math.max(0,cd-dt);if(keys.act)action();raceStep(dt);
@@ -328,6 +336,11 @@ function panelHTML(z){
   const item=(id,ic,t,desc,cost,ok)=>`<div class="item"><div class="ic">${ic}</div><div class="t"><b>${t}</b><span class="sub">${desc}</span></div><button data-a="${id}" ${(s.money<cost||!ok)?'disabled':''}>${fmt(cost)}</button></div>`;
   let h='';
   if(z.startsWith('npc_'))h=npcPanel(z);else if(z==='race')h='<h2>Circuit</h2><div class="sub">Record : '+(s.bestLap?fmtT(s.bestLap):'aucun')+'<br>'+race.laps+' tours · prime 150 € (+500 € si record)<br>Reste sur la piste : l\'herbe te ralentit.</div>';
+  else if(z==='port'){
+    h='<h2>⚓ Showroom nautique</h2>';
+    BT.forEach((b,i)=>{if(s.boats.includes(i))h+=`<div class="item"><div class="ic">⛵</div><div class="t"><b>${b.n}</b><span class="sub">Vitesse ${b.sp}</span></div>${s.boat===i?'<span class="tag">Amarré</span>':`<button data-a="buse_${i}">Choisir</button>`}</div>`;else h+=item('boat_'+i,i<2?'🚤':'🛥️',b.n,`${b.d} · vitesse ${b.sp}`,b.c,1)});
+    h+='<div class="sub" style="margin-top:6px">Amène ton bateau au ponton pour embarquer (E).</div>';
+  }
   else if(z==='show'){
     h='<h2>Showroom</h2>';
     BK.forEach((b,i)=>{
@@ -356,7 +369,7 @@ function hud(){
   const c=ctxInfo(),z=near();
   $('hint').style.display=c?'block':'none';if(c)$('hint').textContent=c.t;
   $('act').disabled=!(c&&c.f);
-  $('speed').textContent=s.cur>=0&&Math.abs(spd)>.5?Math.round(Math.abs(spd)*3.6)+' km/h':'';
+  $('speed').textContent=(s.cur>=0||sailing)&&Math.abs(spd)>.5?Math.round(Math.abs(spd)*3.6)+' km/h':'';
   const zz=z?z.id:'';if(zz!==lastZ){lastZ=zz;sig=''}
   $('online').textContent=online>1?'👥 '+online+' en ligne':(room?'👥 seul':'');if(menuOpen&&tab==='online'&&++mrc%7===0)renderMenu();
   upd();
@@ -367,7 +380,7 @@ function upd(){
   $('stocktxt').textContent=`Stock : ${s.n}/${cap()} · ${fmt(s.val)}`;
   $('sb').style.width=(100*s.n/cap())+'%';
   const o=OBJ.find(x=>!x[0]());$('obj').textContent=o?'Objectif : '+o[1]():'🏆 Empire complet !';
-  const ns=[lastZ,s.garage,s.rent,s.vend,s.chin,s.house,s.pool,s.cur,s.bikes.length,s.eng,Object.keys(s.deco).length,s.bestLap,s.mis?s.mis.k+s.mis.from:0,s.lvl,s.found,Math.floor(s.money/50)].join('|');
+  const ns=[lastZ,s.garage,s.rent,s.vend,s.chin,s.house,s.pool,s.cur,s.bikes.length,s.eng,Object.keys(s.deco).length,s.boats.length,s.boat,s.bestLap,s.mis?s.mis.k+s.mis.from:0,s.lvl,s.found,Math.floor(s.money/50)].join('|');
   if(ns!==sig){sig=ns;const h=panelHTML(lastZ),p=$('panel');p.innerHTML=h;p.style.display=h?'block':'none'}
   uiExtra();if(!o&&!s.won){s.won=1;sfx.win();toast('🏆 Bravo patron : ton empire est complet !','#ffe066')}
 }
@@ -383,7 +396,7 @@ setInterval(()=>{
 
 /* ===== v4 : circuit, atelier animé, menu, base de données, multijoueur ===== */
 let menuOpen=true,tab='play',sortBy='score',db=null,usr=null,me={id:null,name:''},board=[],names={},canWrite=true,room=null,online=0,pushed='',busy=false,netT=0;
-const remotes=new Map(),myNick='Motard'+(100+Math.floor(Math.random()*900));
+const remotes=new Map();let myNick=(()=>{try{return localStorage.getItem('motoName')||''}catch(e){return ''}})(),nameSet=false;if(myNick)nameSet=true;else myNick='Motard'+(100+Math.floor(Math.random()*900));
 const fmtT=x=>{const m=Math.floor(x/60),r=x-m*60;return m+':'+(r<10?'0':'')+r.toFixed(2)};
 const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -459,14 +472,15 @@ function animExtra(dt){extraStep(dt);
   if(race.on&&race.cd<=0){$('race').style.display='block';$('rtxt').textContent='Tour '+race.lap+'/'+race.laps+' · '+fmtT(race.t)+(s.bestLap?' · Record '+fmtT(s.bestLap):'')+' · P'+rankNow()+'/'+(bots.length+1)+(race.off?' · HORS PISTE':'')}
   else if(race.on)$('race').style.display='none';
   netT+=dt;
-  if(room&&netT>.12){netT=0;sendPos()}
+  if(room&&nameSet&&netT>.12){netT=0;sendPos()}
 }
 $('rabort').onclick=endRace;
 function makeRemote(pr,old){
   const g=new THREE.Group(),fg=makeFig(0x8e44ad);g.add(fg);let b=null;
-  const bi=Number.isInteger(pr.b)&&pr.b>=0&&pr.b<BK.length?pr.b:-1;
+  const wi=Number.isInteger(pr.w)&&pr.w>=0&&pr.w<BT.length?pr.w:-1,bi=wi<0&&Number.isInteger(pr.b)&&pr.b>=0&&pr.b<BK.length?pr.b:-1;
   if(bi>=0){const col=(typeof pr.c==='number'||/^#[0-9a-fA-F]{6}$/.test(pr.c))?pr.c:BK[bi].col;b=makeBike(bi,col);g.add(b.g);fg.position.set(0,.05,-.3);fg.rotation.x=.3}
-  const nm=String(pr.n||'Joueur').slice(0,20);label(nm,.9,0,3.2,0,g);
+  if(wi>=0){const bg=makeBoat(wi);bg.position.y=.12;g.add(bg);fg.position.set(0,.8,0);fg.visible=BT[wi].len<10}
+  const nm=String(pr.n||'Joueur').slice(0,20);label(nm,.9,0,wi>=0?BT[wi].len*.3+2.5:3.2,0,g);
   g.position.set(old?old.g.position.x:pr.x,0,old?old.g.position.z:pr.z);sc.add(g);
   return{g,fig:fg,bk:b,tx:pr.x,tz:pr.z,th:pr.h||0,ang:old?old.ang:(pr.h||0),lean:0,v:0,name:nm,key:''}}
 /* --- Supabase : multijoueur temps réel + classement --- */
@@ -474,10 +488,10 @@ const SB_URL='https://zfcakemnuqoebwaijoaa.supabase.co',SB_KEY='sb_publishable_E
 const myId=(()=>{try{let v=localStorage.getItem('motoId');if(!v){v=Math.random().toString(36).slice(2,10);localStorage.setItem('motoId',v)}return v}catch(e){return Math.random().toString(36).slice(2,10)}})();
 let sbc=null,netErr='',mrc=0,netSt={room:'wait',db:'wait'};
 function onPos(p){if(!p||typeof p.x!=='number'||typeof p.z!=='number'||p.i===myId)return;
-  const key=p.b+'|'+p.c+'|'+p.n;let r=remotes.get(p.i);
+  const key=p.b+'|'+p.w+'|'+p.c+'|'+p.n;let r=remotes.get(p.i);
   if(!r||r.key!==key){if(r)sc.remove(r.g);r=makeRemote(p,r);r.key=key;remotes.set(p.i,r)}
   r.tx=p.x;r.tz=p.z;r.th=+p.h||0;r.lean=+p.l||0;r.v=+p.v||0;r.seen=Date.now()}
-function sendPos(){const p=pl.position;room.send({type:'broadcast',event:'p',payload:{i:myId,x:+p.x.toFixed(1),z:+p.z.toFixed(1),h:+head.toFixed(2),b:s.cur,c:s.cur>=0?(s.paint[s.cur]||BK[s.cur].col):0,l:+lean.toFixed(2),v:+spd.toFixed(1),n:myNick}}).catch(()=>{})}
+function sendPos(){const p=pl.position;room.send({type:'broadcast',event:'p',payload:{i:myId,x:+p.x.toFixed(1),z:+p.z.toFixed(1),h:+head.toFixed(2),b:s.cur,w:sailing?s.boat:-1,c:s.cur>=0?(s.paint[s.cur]||BK[s.cur].col):0,l:+lean.toFixed(2),v:+spd.toFixed(1),n:myNick}}).catch(()=>{})}
 function netLine(){
   const d=netSt.db==='wait'?'connexion…':db?'<b>en ligne</b> (Supabase)':'<b>local</b> : table « scores » indisponible';
   const m=netSt.room==='wait'?'connexion…':room?(online>1?'<b>'+(online-1)+' autre(s) joueur(s)</b> connecté(s)':'<b>connecté</b>, personne d\'autre pour l\'instant'):'<b>indisponible</b> : '+(netErr||'vérifie SB_URL');
@@ -497,7 +511,7 @@ function initNet(){
   }catch(e){netSt={room:'off',db:'off'};netErr=String(e&&e.message||e)}
 }
 async function pushScore(force,zero){
-  if(!db||!sbc||!canWrite||busy)return;
+  if(!db||!sbc||!canWrite||busy||!nameSet)return;
   const d={id:myId,name:myNick,score:Math.floor(s.earned),lap:s.bestLap||0,upd:Date.now()};
   if(!d.score&&!d.lap&&!zero)return;
   const sg=d.score+'|'+d.lap;if(!force&&sg===pushed)return;
@@ -544,7 +558,7 @@ function killBots(){bots.forEach(b=>sc.remove(b.g));bots.length=0}
 function botStep(dt){bots.forEach(b=>{const v=b.v*(1+.08*Math.sin(T*.7+b.k));b.u+=v*dt/BL;placeBot(b);b.w.forEach(w=>w.rotation.x+=v*dt/.48)})}
 function rankNow(){let pp;if(race.cp>12)pp=race.lap*12;else{const q=cpPos(race.cp),p=pl.position;pp=(race.lap-1)*12+(race.cp-1)+1-Math.min(1,Math.hypot(q.x-p.x,q.z-p.z)/(BL/12))}
   return 1+bots.filter(b=>b.u*12>pp).length}
-function extraStep(dt){
+function extraStep(dt){boatStep(dt);
   const sh=houseG&&houseG.getObjectByName('shell');if(sh)sh.visible=!inHouse();
   WK.forEach(w=>{w.t+=w.sp*dt;const q=w.t%1,u=q<.5?q*2:2-q*2,x=w.a[0]+(w.b[0]-w.a[0])*u,z=w.a[1]+(w.b[1]-w.a[1])*u,d=q<.5?1:-1;
     w.f.position.set(x,0,z);w.f.rotation.y=Math.atan2((w.b[0]-w.a[0])*d,(w.b[1]-w.a[1])*d);const sw=Math.sin(T*8+w.sp*99)*.6;w.f.legs[0].rotation.x=sw;w.f.legs[1].rotation.x=-sw});
@@ -557,7 +571,7 @@ function menuHTML(){
   let b='';
   if(tab==='play'){
     const fresh=!s.earned&&!s.found;
-    b='<p>Fouille la casse, vends, monte ton garage, bâtis ton empire et bats le record du circuit.</p><p class="sub">Fortune gagnée : <b>'+fmt(s.earned)+'</b> · Meilleur tour : <b>'+(s.bestLap?fmtT(s.bestLap):'--')+'</b></p><button data-act="play" style="width:100%;font-size:20px;padding:14px">'+(fresh?'Nouvelle partie':'Reprendre')+'</button><p class="sub">'+netLine()+'</p>';
+    b='<p>Fouille la casse, vends, monte ton garage, bâtis ton empire et bats le record du circuit.</p><p class="sub">Fortune gagnée : <b>'+fmt(s.earned)+'</b> · Meilleur tour : <b>'+(s.bestLap?fmtT(s.bestLap):'--')+'</b></p>'+nameBox()+'<button data-act="play" style="width:100%;font-size:20px;padding:14px">'+(fresh?'Nouvelle partie':'Reprendre')+'</button><p class="sub">'+netLine()+'</p>';
   }else if(tab==='rank'){
     let rows=board.slice();
     if(!db)rows=[{id:'local',score:Math.floor(s.earned),lap:s.bestLap||0}];
@@ -567,18 +581,135 @@ function menuHTML(){
     b+='<p class="sub">'+(db?(canWrite?'Tes scores sont enregistrés automatiquement.':'Tu peux lire le classement mais pas y écrire (accès lecture seule).'):'Base de données indisponible : classement local seulement.')+'</p>';
   }else if(tab==='online'){
     const list=[myNick+' (toi)'];remotes.forEach(r=>list.push(r.name));
-    b='<p class="sub">'+netLine()+'</p><ul>'+list.map(n=>'<li>'+esc(n)+'</li>').join('')+'</ul><p class="sub">Tous les joueurs qui ouvrent ce jeu rejoignent le même salon en temps réel.</p>';
-  }else b='<p><b>Déplacement</b> : flèches ou ZQSD · <b>Turbo</b> : Maj ou Espace · <b>Action</b> : E.</p><p>Casse : ramasse les objets brillants. Brocante : vends. Showroom : achète ta moto. Garage : emploie des mécaniciens (ponts élévateurs). Maison : entre par la porte et décore. <b>PNJ ❗</b> : parle-leur (E) pour des missions qui rapportent argent et XP.</p><p><b>Circuit</b> : suis la grande route à l\'opposé de la maison, entre dans l\'anneau de départ, puis E. Passe toutes les portes jaunes, 2 tours chronométrés.</p>';
+    b=nameBox()+'<button data-act="rename" style="width:100%;margin-bottom:8px">Changer mon pseudo</button><p class="sub">'+netLine()+'</p><ul>'+list.map(n=>'<li>'+esc(n)+'</li>').join('')+'</ul><p class="sub">Tous les joueurs qui ouvrent ce jeu rejoignent le même salon en temps réel.</p>';
+  }else b='<p><b>Déplacement</b> : flèches, ZQSD ou joystick · <b>Turbo</b> : Maj ou Espace · <b>Action</b> : E.</p><p>Casse : ramasse les objets brillants. Brocante : vends. Showroom : achète ta moto. Garage : emploie des mécaniciens (ponts élévateurs). Maison : entre par la porte et décore. <b>PNJ ❗</b> : parle-leur (E) pour des missions qui rapportent argent et XP.</p><p><b>Port</b> : un lac avec des bateaux PNJ se trouve derrière le garage, au bout de la route. Achète un bateau au showroom nautique (hors-bord ou yacht), monte à bord au ponton (E) et navigue. Sur mobile, utilise le joystick à gauche.</p><p><b>Circuit</b> : suis la grande route à l\'opposé de la maison, entre dans l\'anneau de départ, puis E. Passe toutes les portes jaunes, 2 tours chronométrés.</p>';
   return '<h1>🏍️ Moto Empire 3D</h1><div class="tabs">'+tabs+'</div>'+b+(tab!=='play'?'<button data-act="play" style="width:100%;margin-top:8px">Retour au jeu</button>':'');
 }
-function renderMenu(){$('mbox').innerHTML=menuHTML()}
+function renderMenu(){const a=document.activeElement;if(menuOpen&&a&&a.id==='pseudo')return;$('mbox').innerHTML=menuHTML()}
 function setMenu(v){menuOpen=v;$('menu').style.display=v?'flex':'none';Object.keys(keys).forEach(k=>keys[k]=0);if(v)renderMenu()}
 $('menu').onclick=e=>{const b=e.target.closest('button');if(!b)return;
   if(b.dataset.tab){tab=b.dataset.tab;renderMenu()}
   else if(b.dataset.sort){sortBy=b.dataset.sort;renderMenu()}
-  else if(b.dataset.act==='play'){actx();setMenu(false)}};
+  else if(b.dataset.act==='rename'){const inp=$('pseudo');if(inp){applyName(inp.value);renderMenu()}}
+  else if(b.dataset.act==='play'){const inp=$('pseudo');if(!nameSet&&!(inp&&applyName(inp.value))){if(tab!=='play'){tab='play'}renderMenu();const q=$('pseudo');if(q)q.focus();return}if(inp&&inp.value.trim()&&inp.value.trim()!==myNick)applyName(inp.value);actx();setMenu(false)}};
+$('menu').addEventListener('keydown',e=>{if(e.target.id==='pseudo'&&e.key==='Enter'){e.preventDefault();const b=$('mbox').querySelector('[data-act="rename"],[data-act="play"]');if(b)b.click()}});
 $('menuBtn').onclick=()=>setMenu(!menuOpen);
 addEventListener('keydown',e=>{if(e.key==='Escape')setMenu(!menuOpen)});
+
+/* ===== v6 : lac, port nautique, bateaux, joystick, pseudo ===== */
+const LC={x:180,z:-15},LR=56,PZ=-15,PX0=118,PX1=140,ISL={x:170,z:10,r:6};
+const BT=[{n:'Canot Sport',c:8000,sp:17,len:5,col:'#e8e8e8',l:2,cam:9,d:'Petit canot rapide'},{n:'Hors-bord Luxe',c:45000,sp:34,len:8,col:'#c0392b',l:6,cam:11,d:'Ultra rapide, finition luxe'},{n:'Yacht Azur',c:180000,sp:16,len:14,col:'#f5f5f5',l:10,cam:16,d:'Cabines, flybridge, radar'},{n:'Méga-Yacht Impérial',c:750000,sp:12,len:22,col:'#1b2a41',l:20,cam:24,d:'3 ponts et héliport'}];
+let sailing=false,boatG=null,mooredG=null,mk='',lkx=0,lkz=0;
+function makeBoat(i,col){
+  const B=BT[i],L=B.len,g=new THREE.Group(),W=L<7?2:L<10?2.5:L<16?4.4:5.8,hc=new THREE.Color(col||B.col).getHex(),wh=0xf4f4f4,dk=0x1f2933,hh=L<10?.9:1.3;
+  box(W,hh,L*.74,hc,0,hh/2+.1,-L*.13,g);
+  const cg=new THREE.ConeGeometry(W*.707,L*.26,4);cg.rotateY(Math.PI/4);
+  const bow=add(new THREE.Mesh(cg,M(hc)),0,hh/2+.1,L*.37,g);bow.rotation.x=Math.PI/2;bow.scale.set(1,1,hh/W);
+  box(W*.94,.1,L*.74,wh,0,hh+.15,-L*.13,g);
+  const dy=hh+.2,zc=-L*.13;
+  if(i===0){tbox(W*.8,.55,.08,0x9fd3f0,0,dy+.3,L*.12,g,.55);box(W*.7,.35,L*.2,dk,0,dy+.18,-L*.18,g);box(.4,.9,.5,dk,0,dy-.3,-L*.5,g)}
+  else if(i===1){tbox(W*.8,.6,.08,0x9fd3f0,0,dy+.35,L*.1,g,.55);box(W*.8,.5,L*.25,dk,0,dy+.25,-L*.12,g);box(.35,.05,L*.7,0xffffff,0,dy+.02,zc,g);[-.6,.6].forEach(x=>box(.5,1,.6,dk,x,dy-.4,-L*.5,g))}
+  else if(i===2){box(W*.8,1.6,L*.38,wh,0,dy+.8,zc,g);tbox(W*.84,.5,L*.36,dk,0,dy+1,zc,g,.85);box(W*.62,.12,L*.24,wh,0,dy+1.7,zc,g);box(W*.6,.8,L*.14,wh,0,dy+2.15,zc,g);cyl(.05,.05,1.5,0x999999,0,dy+3.3,zc,g,6);box(1.6,.04,.5,0xcccccc,0,dy+3.8,zc,g)}
+  else{box(W*.86,1.4,L*.55,wh,0,dy+.7,zc,g);box(W*.76,1.3,L*.42,wh,0,dy+2,zc,g);box(W*.56,1.1,L*.22,wh,0,dy+3.25,zc,g);
+    [[.9,.57,.8],[.8,.44,2.1],[.6,.24,3.3]].forEach(q=>tbox(W*q[0],.4,L*q[1],dk,0,dy+q[2],zc,g,.85));
+    box(W+.02,.18,L*.72,0xd4af37,0,hh*.6,zc,g);cyl(2.6,2.6,.12,0x555555,0,dy+.06,-L*.4,g,20);cyl(.07,.07,3,0x999999,0,dy+5,zc,g,6)}
+  const out=new THREE.Group();g.position.y=-.3;out.add(g);return out;
+}
+function makeSail(col){
+  const g=new THREE.Group(),hc=new THREE.Color(col).getHex();
+  box(1.7,.7,4.6,hc,0,.45,0,g);
+  const cg=new THREE.ConeGeometry(1.2,1.4,4);cg.rotateY(Math.PI/4);const bw=add(new THREE.Mesh(cg,M(hc)),0,.45,3,g);bw.rotation.x=Math.PI/2;bw.scale.set(1,1,.7/1.7);
+  cyl(.06,.06,6,0x999999,0,3.4,.4,g,6);
+  const sh=new THREE.Shape();sh.moveTo(0,1);sh.lineTo(0,6);sh.lineTo(3,1);
+  const sm=new THREE.Mesh(new THREE.ShapeGeometry(sh),new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}));sm.rotation.y=Math.PI/2;sm.position.set(0,.2,.4);g.add(sm);
+  const out=new THREE.Group();g.position.y=-.2;out.add(g);return out;
+}
+/* lac, rive, île */
+const lake=new THREE.Mesh(new THREE.CircleGeometry(LR,72),new THREE.MeshLambertMaterial({color:0x2b8fd8,transparent:true,opacity:.92,emissive:0x0a3550}));
+lake.rotation.x=-Math.PI/2;lake.position.set(LC.x,.12,LC.z);lake.receiveShadow=true;sc.add(lake);
+const shore=new THREE.Mesh(new THREE.RingGeometry(LR-.5,LR+5,72),M(0xdccb8e));shore.rotation.x=-Math.PI/2;shore.position.set(LC.x,.06,LC.z);shore.receiveShadow=true;sc.add(shore);
+cyl(6,7.5,.5,0xdccb8e,ISL.x,.1,ISL.z,sc,16);cyl(4.4,5,.2,0x5aa14a,ISL.x,.45,ISL.z,sc,16);
+[[-1.5,1],[1.8,-1],[0,2.5]].forEach(q=>{const x=ISL.x+q[0],z=ISL.z+q[1];cyl(.2,.3,3.5,0x7a5230,x,2.2,z,sc,6);const lf=add(new THREE.Mesh(new THREE.SphereGeometry(1.6,10,6),M(0x2f9d4a)),x,4.2,z);lf.scale.set(1.5,.4,1.5)});
+/* route, ponton, port */
+box(36,.06,6,0x3d4247,107,.03,PZ);
+box(PX1-PX0,.35,5,0x9b6b3a,(PX0+PX1)/2,.35,PZ);
+for(let x=PX0+3;x<=PX1;x+=6)[-2.4,2.4].forEach(dz=>cyl(.22,.22,1.9,0x5a3a1a,x,.1,PZ+dz,sc,8));
+label('⚓ PORT & LAC',1.6,70,6,PZ);label('⚓ SHOWROOM NAUTIQUE',1.7,108,9,-36);
+box(26,.4,13,0xdddddd,108,.2,-36);tbox(26,.3,13,0x2c6fb7,108,6,-36,sc,.85);box(26,6,.4,0x9fb3c8,108,3,-42.3);
+[[-12.5,-30],[12.5,-30],[-12.5,-42],[12.5,-42]].forEach(q=>box(.5,6,.5,0x555555,108+q[0],3,q[1]));
+const dispB=BT.map((b,i)=>{const sc2=5/b.len,g=makeBoat(i);g.scale.setScalar(sc2);g.position.set(108-9.75+i*6.5,.4+.3*sc2,-36);sc.add(g);cyl(2.8,2.8,.2,0xeeeeee,108-9.75+i*6.5,.5,-36,sc,20);return g});
+Z.push({id:'port',x:108,z:-36,r:13},{id:'dock',x:136,z:PZ,r:11});
+rings.port=ring(108,-36,6.5);rings.dock=ring(136,PZ,6);rings.dock.position.y=.62;
+/* bateaux PNJ */
+const npcB=[];
+[[1,40,15],[0,16,10],[2,46,6],[3,38,-4.5],['s',44,-5],['s',17,4],['s',48,5.5]].forEach((d,i)=>{
+  const g=d[0]==='s'?makeSail(['#e74c3c','#f1c40f','#2ecc71'][i%3]):makeBoat(d[0],['#ffffff','#e67e22','#1abc9c','#2c3e50'][i%4]);
+  sc.add(g);npcB.push({g,r:d[1],w:d[2]/d[1],th:i*1.1})});
+/* sillage */
+const wakes=[],wakeG=new THREE.CircleGeometry(1,14);let wakeT=0;
+function wakeStep(dt){
+  wakeT+=dt;
+  if(sailing&&Math.abs(spd)>3&&wakeT>.07){wakeT=0;const L=BT[s.boat].len,m=new THREE.Mesh(wakeG,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.5,depthWrite:false}));
+    m.rotation.x=-Math.PI/2;m.position.set(pl.position.x-Math.sin(head)*L*.45,.15,pl.position.z-Math.cos(head)*L*.45);m.scale.setScalar(.6);m.userData.a=0;sc.add(m);wakes.push(m)}
+  for(let i=wakes.length-1;i>=0;i--){const m=wakes[i];m.userData.a+=dt;m.scale.setScalar(.6+m.userData.a*3);m.material.opacity=.5*(1-m.userData.a/1.4);if(m.userData.a>1.4){sc.remove(m);m.material.dispose();wakes.splice(i,1)}}
+}
+function modelSync(){
+  const key=(sailing?'S':'L')+s.boat;if(key===mk)return;mk=key;
+  if(boatG){pl.remove(boatG);boatG=null}
+  if(mooredG){sc.remove(mooredG);mooredG=null}
+  if(sailing){boatG=makeBoat(s.boat);pl.add(boatG);fig.position.set(0,.75,-BT[s.boat].len*.12);fig.rotation.x=0;fig.visible=BT[s.boat].len<10;if(bk)bk.g.visible=false}
+  else{fig.visible=true;if(bk)bk.g.visible=true;setBike();
+    if(s.boat>=0){mooredG=makeBoat(s.boat);mooredG.position.set(127+BT[s.boat].len/2,.12,PZ-6);mooredG.rotation.y=Math.PI/2;sc.add(mooredG)}}
+}
+function setSail(on){
+  if(on){if(race.on){toast('Termine la course d\'abord','#ff8a80');sfx.no();return}if(s.boat<0)return;
+    sailing=true;pl.position.set(127+BT[s.boat].len/2,.12,PZ-6);head=Math.PI/2;spd=0;toast('À l\'eau ! '+BT[s.boat].n)}
+  else{sailing=false;pl.position.set(PX0+8,.5,PZ);head=-Math.PI/2;spd=0;lkx=pl.position.x;lkz=pl.position.z;toast('Retour au ponton')}
+  sfx.buy();modelSync();sig='';upd();
+}
+function lakeClamp(p){
+  const dx=p.x-LC.x,dz=p.z-LC.z,d=Math.hypot(dx,dz);
+  if(sailing){
+    if(d>LR-2.5){const k=(LR-2.5)/d;p.x=LC.x+dx*k;p.z=LC.z+dz*k;spd*=.7}
+    const ix=p.x-ISL.x,iz=p.z-ISL.z,id=Math.hypot(ix,iz);
+    if(id<ISL.r+2.5&&id>.01){p.x=ISL.x+ix/id*(ISL.r+2.5);p.z=ISL.z+iz/id*(ISL.r+2.5);spd*=.7}
+    p.y=.12+Math.sin(T*2)*.05;
+    if(boatG){boatG.rotation.z=lean*.5;boatG.rotation.x=Math.sin(T*1.7)*.02-Math.min(.08,Math.abs(spd)*.004)}
+  }else{
+    const onPier=Math.abs(p.z-PZ)<3.2&&p.x>PX0&&p.x<PX1;
+    if(!onPier&&d<LR+.5){p.x=lkx;p.z=lkz;spd=0}else{lkx=p.x;lkz=p.z}
+    p.y=onPier?.5:0;
+  }
+}
+function boatStep(dt){
+  modelSync();
+  npcB.forEach(b=>{b.th+=b.w*dt;const sg=b.w>0?1:-1;b.g.position.set(LC.x+b.r*Math.cos(b.th),.12+Math.sin(T*1.4+b.r)*.04,LC.z+b.r*Math.sin(b.th));
+    b.g.rotation.y=Math.atan2(-Math.sin(b.th)*sg,Math.cos(b.th)*sg);b.g.rotation.z=Math.sin(T*1.1+b.r)*.04});
+  lake.material.emissive.setHSL(.55,.8,.12+.03*Math.sin(T*1.3));
+  dispB.forEach(d=>d.rotation.y+=dt*.6);
+  wakeStep(dt);
+}
+/* joystick tactile */
+const joy={x:0,y:0};
+(function(){
+  const el=$('joy'),nub=$('nub');let pid=null;
+  function mv(e){const r=el.getBoundingClientRect(),R=r.width/2-8;let dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);const d=Math.hypot(dx,dy);if(d>R){dx*=R/d;dy*=R/d}
+    nub.style.transform='translate('+dx+'px,'+dy+'px)';let jx=dx/R,jy=-dy/R;if(Math.hypot(jx,jy)<.14){jx=0;jy=0}joy.x=jx;joy.y=jy}
+  function end(e){if(pid!==null&&e.pointerId!==pid)return;pid=null;joy.x=0;joy.y=0;nub.style.transform=''}
+  el.addEventListener('pointerdown',e=>{e.preventDefault();pid=e.pointerId;try{el.setPointerCapture(pid)}catch(x){}actx();mv(e)});
+  el.addEventListener('pointermove',e=>{if(e.pointerId===pid)mv(e)});
+  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>el.addEventListener(ev,end));
+})();
+/* pseudo multijoueur */
+let nameErrShow=false;
+function nameBox(){return '<p><label><b>Ton pseudo en multijoueur</b><br><input id="pseudo" maxlength="16" value="'+(nameSet?esc(myNick):'')+'" placeholder="Entre ton pseudo…" autocomplete="off" style="width:100%;font:inherit;padding:8px;border:2px solid var(--ink);border-radius:8px;background:transparent;color:var(--ink);margin-top:4px"></label>'+(nameErrShow?'<span style="color:#e74c3c;font-weight:700">Choisis un pseudo de 2 à 16 caractères pour rejoindre le monde.</span>':'')+'</p>'}
+function applyName(v){
+  v=String(v||'').trim().replace(/[<>&"']/g,'').slice(0,16);
+  if(v.length<2){nameErrShow=true;return false}
+  nameErrShow=false;myNick=v;nameSet=true;me.name=v;try{localStorage.setItem('motoName',v)}catch(e){}
+  pushScore(true,true);return true;
+}
+
 setMenu(true);initNet();
 
 setBike();buildGarage();buildHouse();sync();upd();requestAnimationFrame(frame);
