@@ -61,7 +61,7 @@ table.lb{width:100%;border-collapse:collapse;font-size:14px}table.lb td,table.lb
 <div id="race"><div id="rtxt"></div><button id="rabort">Abandonner</button></div><div id="count"></div>
 <div id="menu"><div id="mbox"></div></div>
 <div id="joy" aria-label="Joystick de déplacement"><div id="nub"></div></div>
-<div id="btns"><button data-k="fire">🔫 Tir</button><button data-k="boost">⚡ Turbo</button><button id="act" data-k="act">Action</button></div>
+<div id="btns"><button data-k="asc" id="bAsc" style="display:none">⬆️</button><button data-k="desc" id="bDesc" style="display:none">⬇️</button><button data-k="fire">🔫 Tir</button><button data-k="boost">⚡ Turbo</button><button id="act" data-k="act">Action</button></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.js"></script>
@@ -70,7 +70,7 @@ const PARTS=[{v:[1,3],w:50,c:0x9a9a9a},{v:[4,8],w:25,c:0x4aa3df},{v:[8,15],w:13,
 const BK=[{n:'Vieille Rouillée',c:300,sp:13,len:1,fork:0,fair:0,col:0x8a5a3a,d:'Lente, mais elle roule'},{n:'Roadster Urbain',c:2500,sp:20,len:1.05,fork:0,fair:0,col:0x2a6fd6,d:'Agile en ville'},{n:'Chopper Custom',c:9000,sp:25,len:1.35,fork:1,fair:0,col:0xc0392b,d:'Fourche longue, grande allure'},{n:'Superbike GP',c:30000,sp:34,len:1.1,fork:0,fair:1,col:0xf2c230,d:'La plus rapide du monde'}];
 const PAINT=['#c0392b','#2a6fd6','#f2c230','#2fb36b','#eeeeee','#222222','#ff7a1a','#9b59b6'];
 const DECO=[{id:'sofa',n:'Canapé cuir',e:'🛋️',c:3000,l:3,p:[-5,60.5]},{id:'tv',n:'Cinéma plein air',e:'📺',c:5000,l:4,p:[-1,63.2]},{id:'neon',n:'Enseigne néon',e:'🪧',c:6000,l:4,p:[0,57]},{id:'bar',n:'Bar américain',e:'🍺',c:10000,l:6,p:[6,62.3]},{id:'plant',n:'Jardin zen',e:'🪴',c:12000,l:6,p:[-7,54.8]},{id:'trophy',n:'Vitrine à trophées',e:'🏆',c:18000,l:8,p:[7.2,54.6]},{id:'jacuzzi',n:'Jacuzzi',e:'🛁',c:25000,l:10,p:[4,58]},{id:'statue',n:'Statue géante',e:'🗽',c:50000,l:15,p:[0,38]}];
-const D0={money:0,n:0,val:0,garage:0,rent:0,vend:0,chin:0,house:0,pool:0,eng:0,cur:-1,bikes:[],paint:{},found:0,sold:0,won:0,earned:0,bestLap:0,boats:[],boat:-1,deco:{},frac:0,xp:0,lvl:1,mis:null,races:0,hp:100,weps:[],wep:-1,hw:0,hf:0};
+const D0={money:0,n:0,val:0,garage:0,rent:0,vend:0,chin:0,house:0,pool:0,eng:0,cur:-1,bikes:[],paint:{},found:0,sold:0,won:0,earned:0,bestLap:0,boats:[],boat:-1,deco:{},frac:0,xp:0,lvl:1,mis:null,races:0,hp:100,weps:[],wep:-1,hw:0,hf:0,planes:[],plane:-1,cars:[],pp:null};
 let s=load();
 function load(){try{const r=localStorage.getItem('motoEmpire3D');if(r)return Object.assign({},D0,JSON.parse(r))}catch(e){}return JSON.parse(JSON.stringify(D0))}
 function save(){try{localStorage.setItem('motoEmpire3D',JSON.stringify(s))}catch(e){}}
@@ -83,7 +83,7 @@ const costVend=()=>Math.round(300*Math.pow(1.15,s.vend));
 const costChin=()=>Math.round(200*Math.pow(1.15,s.chin));
 const costGar=()=>s.garage===0?800:5000*Math.pow(3,s.garage-1);
 const costEng=()=>1000*Math.pow(2,s.eng);
-const luxe=()=>(s.house?10:0)+(s.pool?8:0)+DECO.reduce((a,d)=>a+(s.deco[d.id]?d.l:0),0)+(s.boats||[]).reduce((a,i)=>a+BT[i].l,0);
+const luxe=()=>(s.house?10:0)+(s.pool?8:0)+DECO.reduce((a,d)=>a+(s.deco[d.id]?d.l:0),0)+(s.boats||[]).reduce((a,i)=>a+BT[i].l,0)+(s.planes||[]).reduce((a,i)=>a+PL[i].l,0)+(s.cars||[]).reduce((a,i)=>a+LX[i].l,0);
 function gain(a){s.money+=a;s.earned+=a}
 const income=()=>s.rent*5*(1+luxe()/100);
 
@@ -98,7 +98,7 @@ let tt;function toast(m,c){const e=$('toast');e.textContent=m;e.style.color=c||'
 /* ---- 3D de base ---- */
 const R=new THREE.WebGLRenderer({canvas:$('c'),antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));R.shadowMap.enabled=true;
 const sc=new THREE.Scene();sc.background=new THREE.Color(0x9fd3f0);sc.fog=new THREE.Fog(0x9fd3f0,90,280);
-const cam=new THREE.PerspectiveCamera(62,1,.1,600);
+const cam=new THREE.PerspectiveCamera(62,1,.1,1500);
 sc.add(new THREE.HemisphereLight(0xffffff,0x6a8a5a,.85));
 const sun=new THREE.DirectionalLight(0xffffff,.8);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
 Object.assign(sun.shadow.camera,{left:-35,right:35,top:35,bottom:-35,far:160});sun.shadow.camera.updateProjectionMatrix();sc.add(sun,sun.target);
@@ -181,7 +181,7 @@ box(26,.4,13,0xdddddd,18,.2,-30);box(26,.3,13,0xeeeeee,18,6,-30);box(26,6,.4,0x9
 label('SHOWROOM',2,18,8,-30);
 const disp=BK.map((b,i)=>{const m=makeBike(i,b.col);m.g.scale.setScalar(.9);m.g.position.set(18-7.5+i*5,.4,-30);sc.add(m.g);return m.g});
 // arbres
-for(let i=0;i<230;i++){const a=i*2.399,r=100+((i*37)%230),x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.hypot(x-215,z+15)<96||(z>96&&Math.abs(x)<135)||(x>90&&x<130&&Math.abs(z+20)<32)||Math.hypot(x,z+175)<95||(Math.abs(x)<10&&z<-85)||Math.hypot(x,z)>330)continue;
+for(let i=0;i<230;i++){const a=i*2.399,r=100+((i*37)%230),x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.hypot(x-215,z+15)<96||(z>96&&Math.abs(x)<135)||(x>130&&x<300&&z>85&&z<190)||(x>90&&x<130&&Math.abs(z+20)<32)||Math.hypot(x,z+175)<95||(Math.abs(x)<10&&z<-85)||Math.hypot(x,z)>330)continue;
   cyl(.35,.45,2.2,0x7a5230,x,1.1,z,sc,6);const c=add(new THREE.Mesh(new THREE.ConeGeometry(2,5,8),M(0x2f7d3a)),x,4.4,z);c.castShadow=true}
 // garage
 let garG=null,bays=[];
@@ -255,6 +255,9 @@ function purchase(id){
   if(id.startsWith('d_')){const d=DECO.find(x=>x.id===id.slice(2));c=d.c;f=()=>s.deco[d.id]=1}
   else if(id.startsWith('bike_')){const i=+id.slice(5);c=BK[i].c;f=()=>{s.bikes.push(i);s.cur=i;setBike()}}
   else if(id.startsWith('use_')){s.cur=+id.slice(4);setBike();sig='';upd();return}
+  else if(id.startsWith('pl_')){const i=+id.slice(3);c=PL[i].c;f=()=>{s.planes.push(i);s.plane=i;s.pp=null;setTimeout(()=>toast('Le mécano murmure : une île à volcan se cache au nord-ouest…','#ffe066'),2200)}}
+  else if(id.startsWith('puse_')){s.plane=+id.slice(5);s.pp=null;sig='';upd();return}
+  else if(id.startsWith('car_')){const i=+id.slice(4);c=LX[i].c;f=()=>s.cars.push(i)}
   else if(id.startsWith('wep_')){const i=+id.slice(4);c=WP[i].c;f=()=>{s.weps.push(i);s.wep=i}}
   else if(id.startsWith('wuse_')){s.wep=+id.slice(5);sig='';upd();return}
   else if(id.startsWith('hw_')){c=300;f=()=>s.hw=+id.slice(3)}
@@ -284,7 +287,7 @@ const OBJ=[[()=>s.found>=10,()=>`Ramasse des pièces à la casse : ${Math.min(s.
 
 /* ---- contrôles ---- */
 const keys={};
-const KM={arrowleft:'left',q:'left',a:'left',arrowright:'right',d:'right',arrowup:'up',z:'up',w:'up',arrowdown:'down',s:'down',e:'act',enter:'act',shift:'boost',' ':'boost',f:'fire'};
+const KM={arrowleft:'left',q:'left',a:'left',arrowright:'right',d:'right',arrowup:'up',z:'up',w:'up',arrowdown:'down',s:'down',e:'act',enter:'act',shift:'boost',' ':'boost',f:'fire',r:'asc',t:'desc'};
 addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;const k=KM[e.key.toLowerCase()];if(k){keys[k]=1;actx();if(e.key.startsWith('Arrow')||e.key===' ')e.preventDefault()}});
 addEventListener('keyup',e=>{const k=KM[e.key.toLowerCase()];if(k)keys[k]=0});
 document.querySelectorAll('[data-k]').forEach(b=>{const k=b.dataset.k;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=1;actx()});
@@ -296,7 +299,7 @@ let T=0,last=performance.now(),hudT=0;
 const V=THREE.Vector3;
 function step(dt){
   const fr=race.on&&race.cd>0;
-  const riding=s.cur>=0||sailing,vmax=(sailing?BT[s.boat].sp:(riding?BK[s.cur].sp*(1+.12*s.eng):5.5))*(keys.boost?1.35:1)*offTrack();
+  const riding=s.cur>=0||sailing||flying,vmax=(flying?PL[s.plane].sp:sailing?BT[s.boat].sp:(riding?BK[s.cur].sp*(1+.12*s.eng):5.5))*(keys.boost?1.35:1)*offTrack();
   const f=fr?0:Math.max(-1,Math.min(1,(keys.up?1:0)-(keys.down?1:0)+joy.y)),st=fr?0:Math.max(-1,Math.min(1,(keys.left?1:0)-(keys.right?1:0)-joy.x)),acc=riding?(f>0?11:14):30;
   if(f>0){const tv=vmax*Math.min(1,f*1.15);if(spd<tv)spd=Math.min(tv,spd+acc*dt);else spd=Math.max(tv,spd-8*dt)}else if(f<0)spd=Math.max(-vmax*.35,spd-acc*1.2*dt);
   else spd-=Math.sign(spd)*Math.min(Math.abs(spd),(riding?5:25)*dt);
@@ -304,17 +307,17 @@ function step(dt){
   const k=riding?Math.min(1,Math.abs(spd)/6):(f||st?1:0);
   head+=st*(riding?1.9:2.6)*k*dt*(spd<0?-1:1);
   const p=pl.position;p.x+=Math.sin(head)*spd*dt;p.z+=Math.cos(head)*spd*dt;
-  C.forEach((c,ci)=>{if(ci===2&&s.house)return;const dx=p.x-c.x,dz=p.z-c.z,d=Math.hypot(dx,dz),m=c.r+.8;if(d<m){p.x=c.x+dx/d*m;p.z=c.z+dz/d*m;spd*=.6}});
-  if(s.house)WALLS.forEach(w=>{const cx=Math.max(w[0],Math.min(p.x,w[1])),cz=Math.max(w[2],Math.min(p.z,w[3])),dx=p.x-cx,dz=p.z-cz,d=Math.hypot(dx,dz);if(d<.8){if(d>.001){p.x=cx+dx/d*.8;p.z=cz+dz/d*.8}else p.z=w[2]-.8;spd*=.6}});const rd=Math.hypot(p.x,p.z);if(rd>330){p.x*=330/rd;p.z*=330/rd;spd*=.5}
-  lakeClamp(p);
+  C.forEach((c,ci)=>{if(flying&&p.y>1)return;if(ci===2&&s.house)return;const dx=p.x-c.x,dz=p.z-c.z,d=Math.hypot(dx,dz),m=c.r+.8;if(d<m){p.x=c.x+dx/d*m;p.z=c.z+dz/d*m;spd*=.6}});
+  if(s.house&&!(flying&&p.y>1))WALLS.forEach(w=>{const cx=Math.max(w[0],Math.min(p.x,w[1])),cz=Math.max(w[2],Math.min(p.z,w[3])),dx=p.x-cx,dz=p.z-cz,d=Math.hypot(dx,dz);if(d<.8){if(d>.001){p.x=cx+dx/d*.8;p.z=cz+dz/d*.8}else p.z=w[2]-.8;spd*=.6}});const rd=Math.hypot(p.x,p.z);if(rd>330&&!flying&&Math.hypot(p.x-IL.x,p.z-IL.z)>130){p.x*=330/rd;p.z*=330/rd;spd*=.5}
+  if(!flying)lakeClamp(p);
   pl.rotation.y=head;
   lean+=((-st*Math.min(1,Math.abs(spd)/vmax)*.45)-lean)*Math.min(1,dt*6);
   if(bk){bk.g.rotation.z=lean;bk.wheels.forEach(w=>w.rotation.x+=spd*dt/.48)}
   else{const sw=Math.sin(T*11)*Math.min(1,Math.abs(spd)/3)*.6;fig.legs[0].rotation.x=sw;fig.legs[1].rotation.x=-sw}
-  const fw=new V(Math.sin(head),0,Math.cos(head)),want=p.clone().addScaledVector(fw,-(sailing?BT[s.boat].cam:(riding?8:6))).add(new V(0,sailing?BT[s.boat].cam*.42:(riding?3.6:3.2),0));
+  const fw=new V(Math.sin(head),0,Math.cos(head)),want=p.clone().addScaledVector(fw,-(flying?14:sailing?BT[s.boat].cam:(riding?8:6))).add(new V(0,flying?5:sailing?BT[s.boat].cam*.42:(riding?3.6:3.2),0));
   cam.position.lerp(want,1-Math.pow(.001,dt));cam.lookAt(p.x+fw.x*3,p.y+1.2,p.z+fw.z*3);
   sun.position.set(p.x+30,50,p.z+20);sun.target.position.copy(p);
-  cd=Math.max(0,cd-dt);if(keys.act)action();raceStep(dt);combatStep(dt);bRaceStep(dt);
+  cd=Math.max(0,cd-dt);if(keys.act)action();raceStep(dt);combatStep(dt);bRaceStep(dt);planeStep(dt);
   if(eng){eng.g.gain.value=(!mute&&riding)?.025+.02*Math.min(1,Math.abs(spd)/vmax):0;eng.o.frequency.value=45+Math.abs(spd)*5}
   // pièces
   parts.forEach((q,i)=>{q.m.position.y=1+Math.sin(T*2+q.ph)*.25;q.m.rotation.y+=dt*2;
@@ -373,7 +376,7 @@ function hud(){
   const c=ctxInfo(),z=near();
   $('hint').style.display=c?'block':'none';if(c)$('hint').textContent=c.t;
   $('act').disabled=!(c&&c.f);
-  $('speed').textContent=(s.cur>=0||sailing)&&Math.abs(spd)>.5?Math.round(Math.abs(spd)*3.6)+' km/h':'';
+  $('speed').textContent=flying?Math.round(Math.abs(spd)*3.6)+' km/h · alt '+Math.round(pl.position.y)+' m':(s.cur>=0||sailing)&&Math.abs(spd)>.5?Math.round(Math.abs(spd)*3.6)+' km/h':'';
   const zz=z?z.id:'';if(zz!==lastZ){lastZ=zz;sig=''}
   $('online').textContent=online>1?'👥 '+online+' en ligne':(room?'👥 seul':'');if(menuOpen&&tab==='online'&&++mrc%7===0)renderMenu();
   upd();
@@ -384,7 +387,7 @@ function upd(){
   $('stocktxt').textContent=`Stock : ${s.n}/${cap()} · ${fmt(s.val)}`;
   $('sb').style.width=(100*s.n/cap())+'%';
   const o=OBJ.find(x=>!x[0]());$('obj').textContent=o?'Objectif : '+o[1]():'🏆 Empire complet !';
-  const ns=[lastZ,s.garage,s.rent,s.vend,s.chin,s.house,s.pool,s.cur,s.bikes.length,s.eng,Object.keys(s.deco).length,s.boats.length,s.boat,s.bestLap,s.mis?s.mis.k+s.mis.from:0,s.lvl,s.found,Math.floor(s.money/50),s.hp<100,s.wep,s.weps.length,s.hw,s.hf].join('|');
+  const ns=[lastZ,s.garage,s.rent,s.vend,s.chin,s.house,s.pool,s.cur,s.bikes.length,s.eng,Object.keys(s.deco).length,s.boats.length,s.boat,s.bestLap,s.mis?s.mis.k+s.mis.from:0,s.lvl,s.found,Math.floor(s.money/50),s.hp<100,s.wep,s.weps.length,s.hw,s.hf,s.planes.length,s.plane,s.cars.length].join('|');
   if(ns!==sig){sig=ns;const h=panelHTML(lastZ),p=$('panel');p.innerHTML=h;p.style.display=h?'block':'none'}
   uiExtra();if(!o&&!s.won){s.won=1;sfx.win();toast('🏆 Bravo patron : ton empire est complet !','#ffe066')}
 }
@@ -586,7 +589,7 @@ function menuHTML(){
   }else if(tab==='online'){
     const list=[myNick+' (toi)'];remotes.forEach(r=>list.push(r.name));
     b=nameBox()+'<button data-act="rename" style="width:100%;margin-bottom:8px">Changer mon pseudo</button><p class="sub">'+netLine()+'</p><ul>'+list.map(n=>'<li>'+esc(n)+'</li>').join('')+'</ul><p class="sub">Tous les joueurs qui ouvrent ce jeu rejoignent le même salon en temps réel.</p>';
-  }else b='<p><b>Déplacement</b> : flèches, ZQSD ou joystick · <b>Turbo</b> : Maj ou Espace · <b>Action</b> : E · <b>Tir</b> : F ou 🔫.</p><p>⚔️ Armurerie (sud-ouest) : achète une arme, tire sur PNJ, voleurs et joueurs, même à moto. 🍪 Chez Etienne (sud-est) : cookies et pâtisseries pour regagner des PV. 🥷 Des voleurs en Ténéré 700 noire te braquent si tu as plus de 1 000 €. ⛵ Régate : en bateau, rejoins la ligne de départ sur le lac.</p><p>Casse : ramasse les objets brillants. Brocante : vends. Showroom : achète ta moto. Garage : emploie des mécaniciens (ponts élévateurs). Maison : entre par la porte et décore. <b>PNJ ❗</b> : parle-leur (E) pour des missions qui rapportent argent et XP.</p><p><b>Port</b> : un lac avec des bateaux PNJ se trouve derrière le garage, au bout de la route. Achète un bateau au showroom nautique (hors-bord ou yacht), monte à bord au ponton (E) et navigue. Sur mobile, utilise le joystick à gauche.</p><p><b>Circuit</b> : suis la grande route à l\'opposé de la maison, entre dans l\'anneau de départ, puis E. Passe toutes les portes jaunes, 2 tours chronométrés.</p>';
+  }else b='<p><b>Déplacement</b> : flèches, ZQSD ou joystick · <b>Turbo</b> : Maj ou Espace · <b>Action</b> : E · <b>Tir</b> : F ou 🔫.</p><p>✈️ Aéroport (sud-est, derrière le lac) : achète un avion au hangar, monte à bord, accélère (↑) puis monte avec R / ⬆️ et descends avec T / ⬇️. On raconte qu\'une île avec un volcan se cache au nord-ouest, très loin en mer…</p><p>⚔️ Armurerie (sud-ouest) : achète une arme, tire sur PNJ, voleurs et joueurs, même à moto. 🍪 Chez Etienne (sud-est) : cookies et pâtisseries pour regagner des PV. 🥷 Des voleurs en Ténéré 700 noire te braquent si tu as plus de 5 000 €. ⛵ Régate : en bateau, rejoins la ligne de départ sur le lac.</p><p>Casse : ramasse les objets brillants. Brocante : vends. Showroom : achète ta moto. Garage : emploie des mécaniciens (ponts élévateurs). Maison : entre par la porte et décore. <b>PNJ ❗</b> : parle-leur (E) pour des missions qui rapportent argent et XP.</p><p><b>Port</b> : un lac avec des bateaux PNJ se trouve derrière le garage, au bout de la route. Achète un bateau au showroom nautique (hors-bord ou yacht), monte à bord au ponton (E) et navigue. Sur mobile, utilise le joystick à gauche.</p><p><b>Circuit</b> : suis la grande route à l\'opposé de la maison, entre dans l\'anneau de départ, puis E. Passe toutes les portes jaunes, 2 tours chronométrés.</p>';
   return '<h1>🏍️ Moto Empire 3D</h1><div class="tabs">'+tabs+'</div>'+b+(tab!=='play'?'<button data-act="play" style="width:100%;margin-top:8px">Retour au jeu</button>':'');
 }
 function renderMenu(){const a=document.activeElement;if(menuOpen&&a&&a.id==='pseudo')return;$('mbox').innerHTML=menuHTML()}
@@ -722,12 +725,18 @@ Object.assign(BUY,{cook:()=>[4,()=>heal(15)],pat:()=>[12,()=>heal(40)],gat:()=>[
 const itm=(id,ic,t,d,c,ok)=>`<div class="item"><div class="ic">${ic}</div><div class="t"><b>${t}</b><span class="sub">${d}</span></div><button data-a="${id}" ${(s.money<c||!ok)?'disabled':''}>${fmt(c)}</button></div>`;
 const swb=(id,c)=>'<button class="sw" style="background:#'+c.toString(16).padStart(6,'0')+'" data-a="'+id+'" '+(s.money<300?'disabled':'')+'></button>';
 function panelHTML(z){
+  if(z==="han"){let h="<h2>✈️ Hangar</h2>";PL.forEach((w,i)=>{h+=s.planes.includes(i)?`<div class="item"><div class="ic">✈️</div><div class="t"><b>${w.n}</b><span class="sub">Vitesse ${w.sp}</span></div>${s.plane===i?'<span class="tag">Au hangar</span>':`<button data-a="puse_${i}">Choisir</button>`}</div>`:itm("pl_"+i,"✈️",w.n,w.d+" · vitesse "+w.sp+" · luxe +"+w.l,w.c,1)});return h+'<div class="sub">Va à ton avion sur le tarmac, monte (E), accélère sur la piste.</div>'}
+  if(z==="lux"){let h="<h2>💎 Showroom Prestige</h2>";LX.forEach((w,i)=>{h+=s.cars.includes(i)?`<div class="item"><div class="ic">🏎️</div><div class="t"><b>${w.n}</b><span class="sub">Dans ta collection · luxe +${w.l}</span></div><span class="tag">À toi</span></div>`:itm("car_"+i,"🏎️",w.n,"Luxe +"+w.l+" (augmente tes revenus)",w.c,1)});return h}
+  if(z==="etn")return"<h2>Etienne</h2><div class=\"sub\">« Bienvenue chez moi, passe prendre un cookie ! »</div><label class=\"sub\" style=\"display:block;margin-top:6px\">📷 Photo du visage :<input type=\"file\" id=\"etFile\" accept=\"image/*\"></label>";
   if(z==='epi')return '<h2>🍪 Chez Etienne</h2>'+itm('cook','🍪','Cookie maison','+15 PV',4,s.hp<100)+itm('pat','🥐','Pâtisserie du jour','+40 PV',12,s.hp<100)+itm('gat','🎂','Gâteau d\'Etienne','Vie complète',30,s.hp<100);
   if(z==='arm'){let h='<h2>🔫 Armurerie</h2>';WP.forEach((w,i)=>{h+=s.weps.includes(i)?`<div class="item"><div class="ic">${w.e}</div><div class="t"><b>${w.n}</b><span class="sub">Dégâts ${w.dmg}</span></div>${s.wep===i?'<span class="tag">Équipé</span>':`<button data-a="wuse_${i}">Équiper</button>`}</div>`:itm('wep_'+i,w.e,w.n,'Dégâts '+w.dmg+' · '+Math.round(1/w.rate*10)/10+' tirs/s',w.c,1)});return h+'<div class="sub">Tir : touche F ou bouton 🔫 (aussi à moto).</div>'}
   let h=panelHTML0(z);
   if(z==='house'&&s.house)h+='<div class="sub" style="margin-top:6px">Murs (300 €)</div>'+HWC.map((c,i)=>swb('hw_'+i,c)).join('')+'<div class="sub">Sol (300 €)</div>'+HFC.map((c,i)=>swb('hf_'+i,c)).join('');
   return h}
 function ctxInfo(){
+  if(flying){const p=pl.position;return(p.y<.3&&Math.abs(spd)<3)?{t:"Descendre de l'avion",f:()=>setFly(false)}:{t:"Vol : ↑ gaz · R/⬆️ monter · T/⬇️ descendre · pose-toi sur la terre ferme"}}
+  if(!sailing&&s.plane>=0){const q=s.pp||PA;if(Math.hypot(pl.position.x-q[0],pl.position.z-q[1])<9)return{t:"Monter dans ton "+PL[s.plane].n,f:()=>setFly(true)}}
+  if(!sailing){const q=near();if(q){if(q.id==="han")return{t:"Hangar : achète et choisis ton avion"};if(q.id==="lux")return{t:"Showroom Prestige : voitures de luxe"};if(q.id==="etn")return{t:"Etienne : discuter / changer sa photo",f:etTalk}}}
   if(sailing){const q=near();if(br.on)return{t:'Régate en cours ! Passe toutes les bouées.'};if(q&&q.id==='reg')return{t:'🏁 Lancer la régate (2 tours, 3 rivaux)',f:startBoatRace}}
   else{const q=near();if(q&&q.id==='epi')return{t:'Chez Etienne : cookies et pâtisseries'};if(q&&q.id==='arm')return{t:s.wep>=0?'Armurerie · '+WP[s.wep].n+' équipé · F pour tirer':'Armurerie : achète une arme'}}
   return ctxInfo0()}
@@ -760,7 +769,7 @@ box(42,.08,40,0x8b7d63,-55,.05,0);
   C.push({x:-14,z:212,r:8},{x:14,z:212,r:5});
   for(let i=0;i<150;i++){const tx=-105-((i*47)%190),tz=-200+((i*89)%400)+((i%7)-3)*3;cyl(.35,.45,2.2,0x7a5230,tx,1.1,tz,sc,6);add(new THREE.Mesh(new THREE.ConeGeometry(2+(i%3)*.4,5+(i%4),8),M(i%2?0x2f7d3a:0x25683a)),tx,4.4,tz)}})();
 /* combat */
-const bul=[],thieves=[],BG=new THREE.SphereGeometry(.14,6,6),BM=[new THREE.MeshBasicMaterial({color:0xff9f43}),new THREE.MeshBasicMaterial({color:0xffe066})];let fcd=0,thT=8,hurtT=0;
+const bul=[],thieves=[],BG=new THREE.SphereGeometry(.14,6,6),BM=[new THREE.MeshBasicMaterial({color:0xff9f43}),new THREE.MeshBasicMaterial({color:0xffe066})];let fcd=0,thT=60,hurtT=0;
 function heal(n){s.hp=Math.min(100,s.hp+n);toast('❤️ +'+n+' PV','#7dffa0')}
 function hurt(d){s.hp-=d;hurtT=.3;if(s.hp<=0){const l=Math.floor(s.money*.15);s.money-=l;s.hp=100;if(sailing)setSail(false);pl.position.set(0,0,8);spd=0;toast('💀 KO ! Tu perds '+fmt(l)+' et te réveilles en ville','#ff8a80');sfx.no()}}
 function onHit(p){if(p&&p.to===myId&&p.f!==myId)hurt(+p.d||0)}
@@ -782,10 +791,10 @@ function combatStep(dt){
       if(!hit)remotes.forEach(r=>{if(hit)return;const f=r.g.position;if(Math.hypot(f.x-q.x,f.z-q.z)<1.7){hit=true;if(room)room.send({type:'broadcast',event:'h',payload:{to:r.id,d:b.dmg,f:myId}}).catch(()=>{});r.hp=Math.max(0,r.hp-b.dmg);r.hb.set(r.hp/100)}})}
     if(hit||b.t<=0){sc.remove(b.m);bul.splice(i,1)}}
   WK.forEach(w=>{if(w.dead>0){w.dead-=dt;if(w.dead<=0){w.hp=40;w.f.visible=true;w.bar.set(1)}}});
-  thT-=dt;if(thT<=0){thT=14+Math.random()*10;if(s.money>1000&&thieves.length<2&&!sailing&&!menuOpen)spawnThief()}
+  thT-=dt;if(thT<=0){thT=70+Math.random()*80;if(s.money>5000&&thieves.length<1&&Math.random()<.6&&!sailing&&!flying&&!menuOpen)spawnThief()}
   for(let i=thieves.length-1;i>=0;i--){const t=thieves[i],q=t.g.position;t.life-=dt;const dx=p.x-q.x,dz=p.z-q.z,d=Math.hypot(dx,dz)||1,sg=t.fl>0?-1:1,v=t.fl>0?20:Math.min(26,16+s.lvl*.5);
     q.x+=dx/d*sg*v*dt;q.z+=dz/d*sg*v*dt;t.g.rotation.y=Math.atan2(dx*sg,dz*sg);t.w.forEach(w=>w.rotation.x+=v*dt/.48);
-    if(t.fl>0)t.fl-=dt;else if(d<2.4&&s.money>0&&!sailing){const st=Math.max(50,Math.floor(s.money*.3));s.money-=st;t.loot=st;t.fl=8;toast('🥷 Un voleur t\'a piqué '+fmt(st)+' ! Abats-le pour les récupérer','#ff8a80');sfx.no()}
+    if(t.fl>0)t.fl-=dt;else if(d<2.4&&s.money>0&&!sailing&&!flying){const st=Math.max(50,Math.floor(s.money*.3));s.money-=st;t.loot=st;t.fl=8;toast('🥷 Un voleur t\'a piqué '+fmt(st)+' ! Abats-le pour les récupérer','#ff8a80');sfx.no()}
     if(t.life<=0||(t.fl<=0&&t.loot)||d>230){sc.remove(t.g);thieves.splice(i,1)}}}
 setInterval(()=>{$('hpb').style.width=Math.max(0,s.hp)+'%';$('hpt').textContent='❤️ '+Math.ceil(s.hp);$('wept').textContent=s.wep>=0?WP[s.wep].e+' '+WP[s.wep].n+' (F)':'Aucune arme';$('hpBox').style.borderColor=hurtT>0?'#e74c3c':''},150);
 /* régate : bouées, rivaux */
@@ -809,6 +818,81 @@ function bRaceStep(dt){
   const p=pl.position,g=bpos(br.i%BN),d=Math.hypot(g[0]-p.x,g[1]-p.z),pp=br.i-Math.min(1,d/58),rk=1+br.bots.filter(b=>bProg(b)>pp).length;
   if(d<9){br.i++;beep(660,.06);if(br.i>BN*2){const rk2=1+br.bots.filter(b=>bProg(b)>=BN*2).length,pr=300+[400,250,120,0][rk2-1];gain(pr);addXp(80);s.races++;toast('Régate finie : '+rk2+'e · '+fmtT(br.t)+' · +'+fmt(pr),'#7dffa0');sfx.win();endBRace();return}mvBm()}
   $('race').style.display='block';$('rtxt').textContent='⛵ Tour '+(Math.floor((br.i-1)/BN)+1)+'/2 · '+fmtT(br.t)+' · P'+rk+'/4'}
+
+/* ===== v8 : aéroport, avions, île du volcan, showroom de luxe, Etienne ===== */
+s.planes=s.planes||[];s.cars=s.cars||[];if(s.plane==null)s.plane=-1;
+const PL=[{n:'Cessna Aigle',c:60000,sp:45,l:6,d:'Monomoteur d\'entraînement'},{n:'Turbo Falcon',c:350000,sp:70,l:12,d:'Bimoteur rapide'},{n:'Jet Phoenix',c:1200000,sp:110,l:20,d:'Jet privé ultra rapide'}];
+const LX=[{n:'Aurum GT',c:250000,l:6,col:0xd4af37},{n:'Vortex Hypercar',c:800000,l:12,col:0xe74c3c},{n:'Stallion V12',c:1500000,l:18,col:0x2c3e50},{n:'Phantom Royale',c:3000000,l:30,col:0xf4f4f4}];
+const PA=[160,130,Math.PI/2],IL={x:-560,z:-520};
+let flying=false,planeG=null,parkedG=null,pk='',air=false;
+function makePlane(i){
+  const g=new THREE.Group(),c=[0xf2f2f2,0x2a6fd6,0x2a3340][i],a=[0xd9342b,0xf2c230,0xd4af37][i],L=5+i*1.5;
+  cyl(.55,.4,L,c,0,1.2,0,g,10).rotation.x=Math.PI/2;
+  const nose=cyl(0,.55,1.1,c,0,1.2,L/2+.55,g,10);nose.rotation.x=Math.PI/2;
+  box(8+i*1.5,.12,1.8,a,0,1.15,.3,g);box(3,.1,1,a,0,1.5,-L/2+.3,g);box(.1,1.3,1,a,0,2.1,-L/2+.3,g);
+  box(.9,.5,1.2,0x9fd3f0,0,1.7,L*.2,g);
+  if(i===2){[-1.8,1.8].forEach(x=>cyl(.3,.3,1.6,0x555555,x,1.0,-.2,g,8).rotation.x=Math.PI/2)}
+  else cyl(0,0,0,c,0,1.2,0,g);
+  const prop=box(i<2?2.4:0.01,.15,.08,0x222222,0,1.2,L/2+1.2,g);
+  [[-.9,.1],[.9,.1],[0,-L/2+.4]].forEach(w=>{cyl(.05,.05,.7,0x555555,w[0],.6,w[1],g,6);cyl(.3,.3,.15,0x111111,w[0],.3,w[1],g,10).rotation.z=Math.PI/2});
+  const out=new THREE.Group();out.add(g);out.userData.prop=prop;return out}
+function makeCar(col){const g=new THREE.Group();box(2.1,.55,4.4,col,0,.6,0,g);box(1.7,.5,2,0x1d2733,0,1.1,-.2,g);box(1.9,.08,.5,0x111111,0,1.0,-2.2,g);
+  [[-1,1.4],[1,1.4],[-1,-1.4],[1,-1.4]].forEach(w=>cyl(.38,.38,.3,0x111111,w[0]*1.05,.38,w[1],g,12).rotation.z=Math.PI/2);return g}
+/* aéroport */
+(function(){
+  box(130,.08,16,0x2b2e32,215,.05,130);for(let x=155;x<275;x+=10)box(5,.09,.5,0xffffff,x,.1,130);
+  box(44,.08,22,0x4a4e54,190,.05,114);box(140,.06,8,0x3d4247,70,.03,100);box(8,.06,34,0x3d4247,140,.03,113);box(14,.06,8,0x3d4247,147,.03,130);
+  box(30,9,16,0x8a9097,170,4.5,100);box(32,.6,17,0x4b5158,170,9.3,100);box(14,7,.3,0x3a4048,170,3.5,91.8);label('✈️ AÉROPORT · HANGAR',1.6,170,12.5,100);
+  cyl(1.6,2,16,0xdddddd,148,8,108,sc,10);cyl(3,2,3,0x9fd3f0,148,17,108,sc,10);
+  Z.push({id:'han',x:170,z:112,r:9});C.push({x:170,z:100,r:12});rings.han=ring(170,112,5)})();
+const dispC=[];
+/* mer, île, volcan */
+(function(){
+  const sea=new THREE.Mesh(new THREE.PlaneGeometry(5000,5000),new THREE.MeshLambertMaterial({color:0x1f78c1}));sea.rotation.x=-Math.PI/2;sea.position.y=-.3;sc.add(sea);
+  const d=(r,c,y)=>{const m=new THREE.Mesh(new THREE.CircleGeometry(r,48),new THREE.MeshLambertMaterial({color:c}));m.rotation.x=-Math.PI/2;m.position.set(IL.x,y,IL.z);m.receiveShadow=true;sc.add(m);return m};
+  d(86,0xe0cf97,.04);d(72,0x4f8a3a,.07);d(40,0x3d3a36,.09);
+  cyl(10,32,62,0x4a3a34,IL.x,31,IL.z,sc,20);const lv=d(9,0xff5a1f,62.2);lv.material.emissive=new THREE.Color(0xc23a00);lv.position.y=62.2;
+  for(let i=0;i<4;i++){const sm=new THREE.Mesh(new THREE.SphereGeometry(7+i*2,10,8),new THREE.MeshLambertMaterial({color:0x666666,transparent:true,opacity:.6}));sm.position.set(IL.x+i*2,70+i*14,IL.z);sc.add(sm)}
+  const bc=new THREE.Mesh(new THREE.CylinderGeometry(4,8,230,10),new THREE.MeshBasicMaterial({color:0x777777,transparent:true,opacity:.35,fog:false}));bc.position.set(IL.x,175,IL.z);sc.add(bc);
+  for(let i=0;i<22;i++){const a=i*.9,r=50+(i%4)*7,x=IL.x+Math.cos(a)*r,z=IL.z+Math.sin(a)*r;if(Math.abs(x-IL.x)<48&&z>IL.z+38)continue;cyl(.25,.35,4,0x7a5230,x,2,z,sc,6);const lf=add(new THREE.Mesh(new THREE.SphereGeometry(2,8,6),M(0x2fa84f)),x,4.4,z);lf.scale.set(1.6,.5,1.6)}
+  box(80,.08,12,0x2b2e32,IL.x,.1,IL.z+50);for(let x=-34;x<=34;x+=9)box(4,.09,.4,0xffffff,IL.x+x,.15,IL.z+50);label('🌋 ÎLE DU VOLCAN',1.8,IL.x,12,IL.z+50);
+  const sx=IL.x+40,sz=IL.z+22;box(28,.3,15,0xeeeeee,sx,.2,sz);box(28,.5,15,0x16191f,sx,7,sz);box(28,7,.4,0x16191f,sx,3.5,sz-7.3);[[-13.5,-7],[13.5,-7],[-13.5,7],[13.5,7]].forEach(q=>box(.5,7,.5,0xd4af37,sx+q[0],3.5,sz+q[1]));
+  label('SHOWROOM PRESTIGE 💎',1.8,sx,9.5,sz+6);
+  LX.forEach((q,i)=>{const c=makeCar(q.col);c.position.set(sx-9+i*6,.4,sz);c.rotation.y=.6;sc.add(c);dispC.push(c)});
+  Z.push({id:'lux',x:sx,z:sz+10,r:14});rings.lux=ring(sx,sz+10,5)})();
+/* Etienne : PNJ avec photo */
+const ETIENNE_PHOTO='etienne.jpg';
+const etn=makeFig(0x2e8b57);etn.position.set(43,0,38);etn.rotation.y=Math.PI;sc.add(etn);label('Etienne',.8,0,2.6,0,etn);
+const etC=document.createElement('canvas');etC.width=etC.height=128;const etX=etC.getContext('2d');
+function etDefault(){etX.fillStyle='#f1c27d';etX.fillRect(0,0,128,128);etX.fillStyle='#3b2a20';etX.fillRect(0,0,128,34);etX.fillStyle='#222';etX.fillRect(34,52,16,10);etX.fillRect(78,52,16,10);etX.strokeStyle='#7a2c1c';etX.lineWidth=6;etX.beginPath();etX.arc(64,84,22,.2,Math.PI-.2);etX.stroke()}
+etDefault();const etT=new THREE.CanvasTexture(etC);
+const etF=new THREE.Mesh(new THREE.PlaneGeometry(.42,.42),new THREE.MeshBasicMaterial({map:etT}));etF.position.set(0,1.68,.21);etn.add(etF);
+function etSet(url){const im=new Image();im.onload=()=>{const m=Math.min(im.width,im.height);etX.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,128,128);etT.needsUpdate=true};im.src=url}
+try{const sv=localStorage.getItem('etPhoto');if(sv)etSet(sv);else etSet(ETIENNE_PHOTO)}catch(e){etSet(ETIENNE_PHOTO)}
+$('panel').addEventListener('change',e=>{if(e.target.id!=='etFile'||!e.target.files[0])return;const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=128;const m=Math.min(im.width,im.height);c.getContext('2d').drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,128,128);const u=c.toDataURL('image/jpeg',.85);try{localStorage.setItem('etPhoto',u)}catch(x){}etSet(u);toast('Photo mise sur Etienne !','#7dffa0')};im.src=fr.result};fr.readAsDataURL(e.target.files[0])});
+Z.unshift({id:'etn',x:43,z:38,r:3.5});let etCd=0;
+function etTalk(){if(Date.now()<etCd){toast('Etienne : « Reviens dans un instant ! »');return}etCd=Date.now()+30000;heal(10);toast('Etienne : « Tiens, un cookie maison ! »')}
+/* vol */
+const onLand=(x,z)=>(Math.abs(x)<450&&Math.abs(z)<450&&Math.hypot(x-LC.x,z-LC.z)>LR+4)||Math.hypot(x-IL.x,z-IL.z)<85;
+function pmSync(){const k=(flying?'F':'L')+s.plane+(s.pp?s.pp[0]:'');if(k===pk)return;pk=k;
+  if(planeG){pl.remove(planeG);planeG=null}if(parkedG){sc.remove(parkedG);parkedG=null}
+  if(flying){planeG=makePlane(s.plane);pl.add(planeG);fig.visible=false;if(bk)bk.g.visible=false}
+  else{fig.visible=true;if(bk)bk.g.visible=true;if(s.plane>=0){parkedG=makePlane(s.plane);const q=s.pp||PA;parkedG.position.set(q[0],0,q[1]);parkedG.rotation.y=q[2];sc.add(parkedG)}}}
+function setFly(on){
+  if(on){if(s.plane<0||sailing||race.on||br.on)return;const q=s.pp||PA;pl.position.set(q[0],0,q[1]);head=q[2];spd=0;flying=true;air=false;toast('✈️ '+PL[s.plane].n+' : accélère puis monte (R)')}
+  else{const p=pl.position;s.pp=[+p.x.toFixed(1),+p.z.toFixed(1),+head.toFixed(2)];flying=false;p.y=0;p.x+=Math.cos(head)*5;p.z-=Math.sin(head)*5;spd=0;pl.rotation.x=0}
+  $('bAsc').style.display=$('bDesc').style.display=flying?'block':'none';pk='';pmSync();sig='';upd()}
+function planeStep(dt){
+  dispC.forEach(c=>c.rotation.y+=dt*.6);pmSync();{const ex=pl.position.x-43,ez=pl.position.z-38;if(Math.hypot(ex,ez)<14)etn.rotation.y=Math.atan2(ex,ez)}
+  const p=pl.position;
+  if(!flying){if(!sailing){const dx=p.x-IL.x,dz=p.z-IL.z,d=Math.hypot(dx,dz);if(Math.hypot(p.x,p.z)>330&&d<130&&d>84){p.x=IL.x+dx/d*84;p.z=IL.z+dz/d*84;spd*=.5}}return}
+  const P=PL[s.plane],fast=spd>P.sp*.5;let vy=0;if(keys.asc&&fast)vy=14;if(keys.desc)vy=-14;
+  if(p.y>.05&&!fast&&!keys.desc)vy=-15;
+  p.y=Math.max(0,Math.min(150,p.y+vy*dt));
+  if(Math.abs(p.x)>1400||Math.abs(p.z)>1400){p.x*=.99;p.z*=.99}
+  if(p.y>.3)air=true;
+  if(p.y<=.05&&!onLand(p.x,p.z)){setFly(false);const q=PA;pl.position.set(q[0]+6,0,q[1]);s.pp=null;pk='';pmSync();hurt(25);toast('💥 Amerrissage raté ! Ton avion est ramené au hangar','#ff8a80');return}
+  if(planeG){planeG.rotation.z=lean*1.6;planeG.rotation.x=-vy*.012;const pr=planeG.userData.prop;if(pr)pr.rotation.z+=dt*45}}
 
 setMenu(true);initNet();
 
