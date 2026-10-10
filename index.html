@@ -895,6 +895,25 @@ function planeStep(dt){
   if(p.y<=.05&&!onLand(p.x,p.z)){setFly(false);const q=PA;pl.position.set(q[0]+6,0,q[1]);s.pp=null;pk='';pmSync();hurt(25);toast('💥 Amerrissage raté ! Ton avion est ramené au hangar','#ff8a80');return}
   if(planeG){planeG.rotation.z=lean*1.6;planeG.rotation.x=-vy*.012;const pr=planeG.userData.prop;if(pr)pr.rotation.z+=dt*45}}
 
+/* interface admin cachée (aucune mention dans le jeu) */
+(function(){
+  let buf='',box=null;
+  const close=()=>{if(box){box.remove();box=null}};
+  function open(){if(box)return;box=document.createElement('div');
+    box.style.cssText='position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px';
+    box.innerHTML='<div style="background:var(--panel);border:3px solid var(--ink);border-radius:14px;padding:16px;width:min(340px,100%)"><b>Admin</b><p class="sub" id="admM"></p><input id="admI" type="number" inputmode="numeric" placeholder="Montant (€)" style="width:100%;font:inherit;padding:8px;border:2px solid var(--ink);border-radius:8px;background:transparent;color:var(--ink)"><div style="display:flex;gap:8px;margin-top:10px"><button id="admOk" style="flex:1">Ajouter</button><button id="admX" style="flex:1;background:transparent;color:var(--ink)">Fermer</button></div></div>';
+    document.body.appendChild(box);
+    const inp=box.querySelector('#admI'),m=box.querySelector('#admM'),refresh=()=>{m.textContent='Argent actuel : '+fmt(s.money)};refresh();
+    const ok=()=>{const v=Math.floor(Number(inp.value));if(!isFinite(v)||v===0)return;s.money=Math.max(0,Math.min(1e12,s.money+v));save();upd();refresh();inp.value='';toast('Admin : '+(v>0?'+':'')+fmt(v),'#ffe066')};
+    box.querySelector('#admOk').onclick=ok;box.querySelector('#admX').onclick=close;
+    inp.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')ok();if(e.key==='Escape')close()});
+    inp.addEventListener('keyup',e=>e.stopPropagation());
+    box.addEventListener('click',e=>{if(e.target===box)close()});
+    setTimeout(()=>inp.focus(),30)}
+  addEventListener('keydown',e=>{if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;buf=(buf+e.key).slice(-4);if(buf==='1234'){buf='';open()}});
+  let taps=[];$('money').addEventListener('click',()=>{const n=Date.now();taps=taps.filter(x=>n-x<2500);taps.push(n);if(taps.length>=7){taps=[];open()}});
+})();
+
 setMenu(true);initNet();
 
 setBike();buildGarage();buildHouse();sync();upd();requestAnimationFrame(frame);
