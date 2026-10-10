@@ -248,7 +248,7 @@ function sync(){
 }
 
 /* ---- règles ---- */
-function sell(m){if(!s.n){toast('Rien à vendre','#ff8a80');sfx.no();return}const g=s.val*m;gain(g);s.sold=1;addXp(Math.ceil(g/25));toast('+'+fmt(g),'#7dffa0');s.n=0;s.val=0;sfx.coin();upd()}
+function sell(m){if(!s.n){if(Date.now()-lastSell>2500){toast('Rien à vendre','#ff8a80');sfx.no()}return}const g=s.val*m;gain(g);s.sold=1;addXp(Math.ceil(g/25));toast('+'+fmt(g)+' ('+s.n+' pièces vendues)','#7dffa0');lastSell=Date.now();s.n=0;s.val=0;sfx.coin();upd()}
 const BUY={gar:()=>[costGar(),()=>s.garage++],rent:()=>[costRent(),()=>s.rent++],vend:()=>[costVend(),()=>s.vend++],chin:()=>[costChin(),()=>s.chin++],house:()=>[25000,()=>s.house=1],pool:()=>[15000,()=>s.pool=1],eng:()=>[costEng(),()=>s.eng++]};
 function purchase(id){
   let c,f;
@@ -282,15 +282,15 @@ function ctxInfo0(){
   if(z.id==='gar')return s.garage?{t:`Vendre au garage : ${fmt(s.val*1.1)} (+10 %)`,f:()=>sell(1.1)}:{t:'Acheter le garage (800 €)',f:()=>purchase('gar')};
   if(z.id==='house')return s.house?{t:'Chez toi : décore dans le menu'}:s.garage>=2?{t:'Acheter la maison (25 000 €)',f:()=>purchase('house')}:{t:'Garage niveau 2 requis'};
 }
-let cd=0;function action(){if(cd>0)return;const c=ctxInfo();if(c&&c.f){c.f();cd=.4}}
+let cd=0,actQ=0,lastSell=0;function action(){if(cd>0)return;const c=ctxInfo();if(c&&c.f){c.f();cd=.4}}
 const OBJ=[[()=>s.found>=10,()=>`Ramasse des pièces à la casse : ${Math.min(s.found,10)}/10`],[()=>s.sold,()=>'Vends-les à la brocante'],[()=>s.bikes.length,()=>'Achète ta première moto au showroom (300 €)'],[()=>s.garage>=1,()=>'Achète le garage (800 €)'],[()=>s.rent>=1,()=>'Achète une moto de location'],[()=>s.vend+s.chin>=1,()=>'Embauche un employé'],[()=>s.garage>=2,()=>'Agrandis le garage au niveau 2'],[()=>s.house,()=>'Achète une maison (25 000 €)'],[()=>s.pool,()=>'Creuse une piscine'],[()=>DECO.every(d=>s.deco[d.id]),()=>`Décore ta maison : ${Object.keys(s.deco).length}/8`],[()=>s.bikes.includes(3),()=>'Offre-toi la Superbike GP']];
 
 /* ---- contrôles ---- */
 const keys={};
 const KM={arrowleft:'left',q:'left',a:'left',arrowright:'right',d:'right',arrowup:'up',z:'up',w:'up',arrowdown:'down',s:'down',e:'act',enter:'act',shift:'boost',' ':'boost',f:'fire',r:'asc',t:'desc'};
-addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;const k=KM[e.key.toLowerCase()];if(k){keys[k]=1;actx();if(e.key.startsWith('Arrow')||e.key===' ')e.preventDefault()}});
+addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;const k=KM[e.key.toLowerCase()];if(k){keys[k]=1;if(k==='act'&&!e.repeat)actQ=1;actx();if(e.key.startsWith('Arrow')||e.key===' ')e.preventDefault()}});
 addEventListener('keyup',e=>{const k=KM[e.key.toLowerCase()];if(k)keys[k]=0});
-document.querySelectorAll('[data-k]').forEach(b=>{const k=b.dataset.k;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=1;actx()});
+document.querySelectorAll('[data-k]').forEach(b=>{const k=b.dataset.k;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=1;if(k==='act')actQ=1;actx()});
   ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=0))});
 $('reset').onclick=()=>{if(confirm('Tout effacer ?')){endRace();sailing=false;s=JSON.parse(JSON.stringify(D0));pl.position.set(0,0,0);head=0;spd=0;setBike();buildGarage();buildHouse();rentals.forEach(r=>sc.remove(r.g));vends.forEach(v=>sc.remove(v));chins.forEach(v=>sc.remove(v));rentals=[];vends=[];chins=[];sig='';upd()}};
 
@@ -317,7 +317,7 @@ function step(dt){
   const fw=new V(Math.sin(head),0,Math.cos(head)),want=p.clone().addScaledVector(fw,-(flying?14:sailing?BT[s.boat].cam:(riding?8:6))).add(new V(0,flying?5:sailing?BT[s.boat].cam*.42:(riding?3.6:3.2),0));
   cam.position.lerp(want,1-Math.pow(.001,dt));cam.lookAt(p.x+fw.x*3,p.y+1.2,p.z+fw.z*3);
   sun.position.set(p.x+30,50,p.z+20);sun.target.position.copy(p);
-  cd=Math.max(0,cd-dt);if(keys.act)action();raceStep(dt);combatStep(dt);bRaceStep(dt);planeStep(dt);
+  cd=Math.max(0,cd-dt);if(actQ){actQ=0;action()}raceStep(dt);combatStep(dt);bRaceStep(dt);planeStep(dt);
   if(eng){eng.g.gain.value=(!mute&&riding)?.025+.02*Math.min(1,Math.abs(spd)/vmax):0;eng.o.frequency.value=45+Math.abs(spd)*5}
   // pièces
   parts.forEach((q,i)=>{q.m.position.y=1+Math.sin(T*2+q.ph)*.25;q.m.rotation.y+=dt*2;
