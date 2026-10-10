@@ -323,7 +323,7 @@ function step(dt){
   parts.forEach((q,i)=>{q.m.position.y=1+Math.sin(T*2+q.ph)*.25;q.m.rotation.y+=dt*2;
     if(Math.hypot(q.m.position.x-p.x,q.m.position.z-p.z)<2.3){
       if(s.n>=cap()){if(!q.warn){q.warn=1;toast('Stock plein !','#ff8a80');sfx.no()}}
-      else{s.n++;s.val+=q.v;s.found++;addXp(2);sc.remove(q.m);parts.splice(i,1);sfx.pick();toast('+'+q.v+' €');upd()}}});
+      else{s.n++;s.val+=q.v;s.found++;addXp(2);sc.remove(q.m);parts.splice(i,1);sfx.pick();toast('🔩 +1 pièce · valeur '+q.v+' € (à vendre à la brocante)');upd()}}});
   if(parts.length<20&&Math.random()<dt*.8)spawnPart();
   // locations, employés, animations
   rentals.forEach((r,i)=>{const th=T*(.1+.015*(i%3))+i*.63,x=88*Math.cos(th),z=88*Math.sin(th);r.g.position.set(x,0,z);r.g.rotation.y=Math.atan2(-Math.sin(th),Math.cos(th));r.g.rotation.z=-.15;r.wheels.forEach(w=>w.rotation.x+=9*dt/.48)});
@@ -384,7 +384,7 @@ function hud(){
 function upd(){
   $('money').textContent=fmt(s.money);
   $('rate').textContent=s.garage?`≈ ${fmt(income()+s.vend*(s.n?(s.val/s.n)*1.2:0))} /s`:'';
-  $('stocktxt').textContent=`Stock : ${s.n}/${cap()} · ${fmt(s.val)}`;
+  $('stocktxt').textContent=`Stock : ${s.n}/${cap()} · ${fmt(s.val)}`+(s.vend&&s.garage?' · 🧑‍💼 vente auto':'');
   $('sb').style.width=(100*s.n/cap())+'%';
   const o=OBJ.find(x=>!x[0]());$('obj').textContent=o?'Objectif : '+o[1]():'🏆 Empire complet !';
   const ns=[lastZ,s.garage,s.rent,s.vend,s.chin,s.house,s.pool,s.cur,s.bikes.length,s.eng,Object.keys(s.deco).length,s.boats.length,s.boat,s.bestLap,s.mis?s.mis.k+s.mis.from:0,s.lvl,s.found,Math.floor(s.money/50),s.hp<100,s.wep,s.weps.length,s.hw,s.hf,s.planes.length,s.plane,s.cars.length].join('|');
